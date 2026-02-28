@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SISTEMA DE CONTROL DE PROYECTOS | DAVID TORRES</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --fibra-green: #004d43;
+            --fibra-gold: #a68966;
+            --bg: #f0f2f5;
+            --white: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            background-color: var(--bg);
+            display: flex;
+        }
+
+        /* Sidebar Dinámico */
+        .sidebar {
+            width: 260px;
+            background: var(--fibra-green);
+            color: white;
+            height: 100vh;
+            position: fixed;
+            padding: 20px;
+        }
+
+        .sidebar h2 { font-size: 1.2rem; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 15px; }
+
+        .nav-link {
+            padding: 15px;
+            margin: 10px 0;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: 0.3s;
+            display: block;
+        }
+
+        .nav-link:hover, .nav-link.active { background: rgba(255,255,255,0.1); font-weight: bold; border-left: 4px solid var(--fibra-gold); }
+
+        /* Contenido Principal */
+        .main-content { margin-left: 300px; padding: 40px; width: calc(100% - 340px); }
+
+        .tab-content { display: none; animation: fadeIn 0.5s; }
+        .tab-content.active { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .header-info { background: var(--white); padding: 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 30px; }
+
+        /* Gráficas y Cards */
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); text-align: center; }
+        .card h4 { color: #666; margin: 0; }
+        .card .big-num { font-size: 2rem; color: var(--fibra-green); font-weight: 700; }
+
+        .chart-container { background: white; padding: 20px; border-radius: 12px; margin-bottom: 30px; height: 350px; }
+
+        /* Tabla Interactiva */
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: var(--fibra-green); color: white; }
+        tr:hover { background: #f9f9f9; }
+
+        .btn-ia { background: var(--fibra-gold); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <h2>FIBRA INN PROJECTS</h2>
+    <p style="font-size: 0.8rem; opacity: 0.7;">Panel de David Alonso Torres</p>
+    <div class="nav-link active" onclick="showTab('resumen')">Dashboard General</div>
+    <div class="nav-link" onclick="showTab('financiero')">Control CAPEX/OPEX</div>
+    <div class="nav-link" onclick="showTab('contratistas')">Licitaciones y Contratos</div>
+    <div class="nav-link" onclick="showTab('ia')">IA & Automatización</div>
+</div>
+
+<div class="main-content">
+    <div class="header-info">
+        <h1 style="margin:0; color: var(--fibra-green);">Coordinador de Proyectos: Panel de Control</h1>
+        <p>Estatus Global de Obra y Cumplimiento Normativo (7 Años de Trayectoria en Fibra Inn)</p>
+    </div>
+
+    <div id="resumen" class="tab-content active">
+        <div class="stats-grid">
+            <div class="card"><h4>Proyectos Activos</h4><div class="big-num">12</div></div>
+            <div class="card"><h4>Avance Promedio</h4><div class="big-num">78%</div></div>
+            <div class="card"><h4>Ahorro Logrado</h4><div class="big-num">$450K</div></div>
+        </div>
+        <div class="chart-container">
+            <canvas id="mainChart"></canvas>
+        </div>
+    </div>
+
+    <div id="financiero" class="tab-content">
+        <h3>Desglose Presupuestal por Unidad de Negocio</h3>
+        <div class="chart-container" style="height: 400px;">
+            <canvas id="budgetChart"></canvas>
+        </div>
+    </div>
+
+    <div id="contratistas" class="tab-content">
+        <h3>Control de Licitaciones y Fianzas</h3>
+        <input type="text" id="search" placeholder="Filtrar por proveedor..." style="padding:10px; margin-bottom:20px; width:300px;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Proveedor</th>
+                    <th>Concepto</th>
+                    <th>Estatus Fianza</th>
+                    <th>Tipo de Contrato</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <tr><td>Contratista Alpha</td><td>Instalaciones Eléctricas</td><td>Vigente</td><td>Precio Alzado</td></tr>
+                <tr><td>Mantenimiento Global</td><td>Remodelación Lobby</td><td>Vigente</td><td>Unitarios</td></tr>
+                <tr><td>Sistemas Digitales</td><td>Automatización CCTV</td><td>Pendiente</td><td>Precio Alzado</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div id="ia" class="tab-content">
+        <div class="card" style="text-align: left;">
+            <h3>Integración de IA Multimodal (Gemini/OpenAI)</h3>
+            <p>Utilizo modelos avanzados para la redacción de contratos y análisis de desviaciones presupuestales en SAP.</p>
+            <button class="btn-ia" onclick="alert('Generando Reporte con IA...')">Generar Reporte Automático</button>
+            <div style="margin-top:20px; padding:15px; background: #e8f5e9; border-radius: 5px;">
+                <strong>Prompt Actual:</strong> "Analizar presupuesto base vs. gastos en SAP para detectar variaciones mayores al 5%."
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showTab(id) {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        event.currentTarget.classList.add('active');
+    }
+
+    // Gráfica Principal de Avance
+    const ctx1 = document.getElementById('mainChart').getContext('2d');
+    new Chart(ctx1, {
+        type: 'line',
+        data: {
+            labels: ['Semana 1', 'Semana 2', 'Semana 3', 'Semana 4'],
+            datasets: [{
+                label: 'Avance Real de Obra (%)',
+                data: [20, 45, 60, 78],
+                borderColor: '#004d43',
+                tension: 0.4,
+                fill: true,
+                backgroundColor: 'rgba(0, 77, 67, 0.1)'
+            }]
+        }
+    });
+
+    // Gráfica de Presupuesto
+    const ctx2 = document.getElementById('budgetChart').getContext('2d');
+    new Chart(ctx2, {
+        type: 'bar',
+        data: {
+            labels: ['Hotel A', 'Hotel B', 'Hotel C', 'Corporativo'],
+            datasets: [{
+                label: 'CAPEX Asignado ($)',
+                data: [1200000, 850000, 2100000, 500000],
+                backgroundColor: '#a68966'
+            }]
+        }
+    });
+
+    // Filtro dinámico de tabla
+    document.getElementById('search').addEventListener('keyup', function() {
+        let val = this.value.toLowerCase();
+        let rows = document.querySelectorAll('#tableBody tr');
+        rows.forEach(row => {
+            row.style.display = row.innerText.toLowerCase().includes(val) ? '' : 'none';
+        });
+    });
+</script>
+
+</body>
+</html>
