@@ -3,189 +3,294 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SISTEMA DE CONTROL DE PROYECTOS | DAVID TORRES</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <title>ESG INN - Panel de Control</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <style>
-        :root {
-            --fibra-green: #004d43;
-            --fibra-gold: #a68966;
-            --bg: #f0f2f5;
-            --white: #ffffff;
-        }
-
         body {
-            font-family: 'Segoe UI', sans-serif;
-            margin: 0;
-            background-color: var(--bg);
+            background-color: #0b1f1a; /* Verde oscuro Fibra Inn */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #ffffff;
+            min-height: 100vh;
+        }
+        
+        /* ESTILOS DEL LOGIN */
+        .login-container {
             display: flex;
-        }
-
-        /* Sidebar Dinámico */
-        .sidebar {
-            width: 260px;
-            background: var(--fibra-green);
-            color: white;
+            justify-content: center;
+            align-items: center;
             height: 100vh;
-            position: fixed;
-            padding: 20px;
         }
-
-        .sidebar h2 { font-size: 1.2rem; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 15px; }
-
-        .nav-link {
-            padding: 15px;
-            margin: 10px 0;
-            cursor: pointer;
-            border-radius: 5px;
-            transition: 0.3s;
+        .login-card {
+            background-color: #15332b;
+            border-radius: 8px;
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border-top: 3px solid #c4d600; /* Lima Fibra Inn */
+        }
+        .login-logo {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .login-logo img {
+            width: 100px;
+            border-radius: 8px;
+        }
+        .login-title {
+            text-align: center;
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+        .form-control {
+            background-color: #0b1f1a;
+            border: 1px solid #2d5a4c;
+            color: white;
+        }
+        .form-control:focus {
+            background-color: #0b1f1a;
+            color: white;
+            border-color: #c4d600;
+            box-shadow: 0 0 0 0.25rem rgba(196, 214, 0, 0.25);
+        }
+        .btn-fibra {
+            background-color: #c4d600;
+            color: #0b1f1a;
+            font-weight: bold;
+            border: none;
+            width: 100%;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        .btn-fibra:hover {
+            background-color: #aaba00;
+            color: #0b1f1a;
+        }
+        .input-icon {
+            color: #c4d600;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
             display: block;
         }
 
-        .nav-link:hover, .nav-link.active { background: rgba(255,255,255,0.1); font-weight: bold; border-left: 4px solid var(--fibra-gold); }
-
-        /* Contenido Principal */
-        .main-content { margin-left: 300px; padding: 40px; width: calc(100% - 340px); }
-
-        .tab-content { display: none; animation: fadeIn 0.5s; }
-        .tab-content.active { display: block; }
-
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        .header-info { background: var(--white); padding: 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 30px; }
-
-        /* Gráficas y Cards */
-        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
-        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); text-align: center; }
-        .card h4 { color: #666; margin: 0; }
-        .card .big-num { font-size: 2rem; color: var(--fibra-green); font-weight: 700; }
-
-        .chart-container { background: white; padding: 20px; border-radius: 12px; margin-bottom: 30px; height: 350px; }
-
-        /* Tabla Interactiva */
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; }
-        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; }
-        th { background: var(--fibra-green); color: white; }
-        tr:hover { background: #f9f9f9; }
-
-        .btn-ia { background: var(--fibra-gold); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        /* ESTILOS DEL DASHBOARD */
+        #dashboard { display: none; padding-top: 30px; padding-bottom: 50px;}
+        .dash-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #2d5a4c;
+            padding-bottom: 15px;
+        }
+        .card-custom {
+            background-color: #15332b;
+            border-radius: 8px;
+            border-top: 3px solid #c4d600;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+        .status-select {
+            background-color: #0b1f1a;
+            border: 1px solid #2d5a4c;
+            color: white;
+            font-weight: bold;
+        }
+        .status-pendiente { color: #ff6b6b !important; }
+        .status-entregado { color: #51cf66 !important; }
+        
+        #loader { display: none; text-align: center; margin-top: 50px; }
+        .spinner-fibra { color: #c4d600; }
     </style>
 </head>
 <body>
 
-<div class="sidebar">
-    <h2>FIBRA INN PROJECTS</h2>
-    <p style="font-size: 0.8rem; opacity: 0.7;">Panel de David Alonso Torres</p>
-    <div class="nav-link active" onclick="showTab('resumen')">Dashboard General</div>
-    <div class="nav-link" onclick="showTab('financiero')">Control CAPEX/OPEX</div>
-    <div class="nav-link" onclick="showTab('contratistas')">Licitaciones y Contratos</div>
-    <div class="nav-link" onclick="showTab('ia')">IA & Automatización</div>
-</div>
-
-<div class="main-content">
-    <div class="header-info">
-        <h1 style="margin:0; color: var(--fibra-green);">Coordinador de Proyectos: Panel de Control</h1>
-        <p>Estatus Global de Obra y Cumplimiento Normativo (7 Años de Trayectoria en Fibra Inn)</p>
-    </div>
-
-    <div id="resumen" class="tab-content active">
-        <div class="stats-grid">
-            <div class="card"><h4>Proyectos Activos</h4><div class="big-num">12</div></div>
-            <div class="card"><h4>Avance Promedio</h4><div class="big-num">78%</div></div>
-            <div class="card"><h4>Ahorro Logrado</h4><div class="big-num">$450K</div></div>
-        </div>
-        <div class="chart-container">
-            <canvas id="mainChart"></canvas>
+    <div id="loginScreen" class="login-container">
+        <div class="login-card">
+            <div class="login-logo">
+                <img src="https://media.licdn.com/dms/image/v2/D560BAQHevH5LsJpmXQ/company-logo_200_200/B56Zi.DanDG4AI-/0/1755535223547/fibrainn_logo?e=2147483647&v=beta&t=IYGkfmXcHxEqXIvZ59Fyp20tYrYLykd70Ot_0YBIN1k" alt="Fibra Inn Logo">
+            </div>
+            <div class="login-title">Acceso Plataforma ESG</div>
+            
+            <div class="mb-3">
+                <label class="input-icon"><i class="fas fa-user"></i> Usuario</label>
+                <input type="text" id="user" class="form-control" placeholder="Ej: ESG">
+            </div>
+            <div class="mb-3">
+                <label class="input-icon"><i class="fas fa-lock"></i> Contraseña</label>
+                <input type="password" id="pass" class="form-control" placeholder="****">
+            </div>
+            <button class="btn btn-fibra" onclick="iniciarSesion()">INGRESAR</button>
         </div>
     </div>
 
-    <div id="financiero" class="tab-content">
-        <h3>Desglose Presupuestal por Unidad de Negocio</h3>
-        <div class="chart-container" style="height: 400px;">
-            <canvas id="budgetChart"></canvas>
+    <div id="loader">
+        <div class="spinner-border spinner-fibra" role="status" style="width: 4rem; height: 4rem;"></div>
+        <h4 class="mt-3">Conectando con Servidor ESG...</h4>
+    </div>
+
+    <div id="dashboard" class="container">
+        <div class="dash-header">
+            <div class="d-flex align-items-center">
+                <img src="https://media.licdn.com/dms/image/v2/D560BAQHevH5LsJpmXQ/company-logo_200_200/B56Zi.DanDG4AI-/0/1755535223547/fibrainn_logo?e=2147483647&v=beta&t=IYGkfmXcHxEqXIvZ59Fyp20tYrYLykd70Ot_0YBIN1k" width="50" style="border-radius: 5px; margin-right: 15px;">
+                <h2 class="mb-0">ESG INN <span style="color: #c4d600;">| Control de Estatus</span></h2>
+            </div>
+            <button class="btn btn-outline-light btn-sm" onclick="location.reload()"><i class="fas fa-sign-out-alt"></i> Salir</button>
         </div>
-    </div>
 
-    <div id="contratistas" class="tab-content">
-        <h3>Control de Licitaciones y Fianzas</h3>
-        <input type="text" id="search" placeholder="Filtrar por proveedor..." style="padding:10px; margin-bottom:20px; width:300px;">
-        <table>
-            <thead>
-                <tr>
-                    <th>Proveedor</th>
-                    <th>Concepto</th>
-                    <th>Estatus Fianza</th>
-                    <th>Tipo de Contrato</th>
-                </tr>
-            </thead>
-            <tbody id="tableBody">
-                <tr><td>Contratista Alpha</td><td>Instalaciones Eléctricas</td><td>Vigente</td><td>Precio Alzado</td></tr>
-                <tr><td>Mantenimiento Global</td><td>Remodelación Lobby</td><td>Vigente</td><td>Unitarios</td></tr>
-                <tr><td>Sistemas Digitales</td><td>Automatización CCTV</td><td>Pendiente</td><td>Precio Alzado</td></tr>
-            </tbody>
-        </table>
-    </div>
+        <div class="card-custom">
+            <label class="form-label fw-bold" style="color: #c4d600;"><i class="fas fa-building"></i> 1. Selecciona el Hotel (INCODE):</label>
+            <select id="selectIncode" class="form-select status-select form-select-lg" onchange="mostrarRubros()">
+                <option value="" selected disabled>Buscar hotel...</option>
+                </select>
+        </div>
 
-    <div id="ia" class="tab-content">
-        <div class="card" style="text-align: left;">
-            <h3>Integración de IA Multimodal (Gemini/OpenAI)</h3>
-            <p>Utilizo modelos avanzados para la redacción de contratos y análisis de desviaciones presupuestales en SAP.</p>
-            <button class="btn-ia" onclick="alert('Generando Reporte con IA...')">Generar Reporte Automático</button>
-            <div style="margin-top:20px; padding:15px; background: #e8f5e9; border-radius: 5px;">
-                <strong>Prompt Actual:</strong> "Analizar presupuesto base vs. gastos en SAP para detectar variaciones mayores al 5%."
+        <div id="panelRubros" class="card-custom" style="display: none;">
+            <h4 id="nombreHotelLabel" style="color: #c4d600; margin-bottom: 25px;"></h4>
+            <div class="row" id="contenedorDropdowns">
+                </div>
+            <hr style="border-color: #2d5a4c; margin: 30px 0;">
+            <div class="text-end">
+                <button class="btn btn-fibra px-5" style="width: auto;" onclick="guardarEnGoogle()">
+                    <i class="fas fa-save"></i> Guardar Cambios en Base de Datos
+                </button>
             </div>
         </div>
     </div>
-</div>
 
-<script>
-    function showTab(id) {
-        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-        event.currentTarget.classList.add('active');
-    }
+    <script>
+        // ==========================================
+        // AQUÍ ESTÁ TU API YA CONECTADA:
+        // ==========================================
+        const API_URL = "https://script.google.com/macros/s/AKfycbwu4BMuNm42AZvlw6mg3RtNOXWaFlDr8abO_-IXl7PBMV4eYZTRo8EI22hac7wKyp2tEw/exec"; 
+        
+        let datosGlobales = [];
+        let encabezadosGlobales = [];
 
-    // Gráfica Principal de Avance
-    const ctx1 = document.getElementById('mainChart').getContext('2d');
-    new Chart(ctx1, {
-        type: 'line',
-        data: {
-            labels: ['Semana 1', 'Semana 2', 'Semana 3', 'Semana 4'],
-            datasets: [{
-                label: 'Avance Real de Obra (%)',
-                data: [20, 45, 60, 78],
-                borderColor: '#004d43',
-                tension: 0.4,
-                fill: true,
-                backgroundColor: 'rgba(0, 77, 67, 0.1)'
-            }]
+        // 1. SISTEMA DE LOGIN
+        function iniciarSesion() {
+            const u = document.getElementById('user').value;
+            const p = document.getElementById('pass').value;
+
+            // Credenciales que me pediste
+            if(u === "ESG" && p === "2250") {
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('loader').style.display = 'block';
+                cargarDatosDesdeAPI();
+            } else {
+                Swal.fire({ icon: 'error', title: 'Acceso Denegado', text: 'Usuario o contraseña incorrectos', background: '#15332b', color: '#fff' });
+            }
         }
-    });
 
-    // Gráfica de Presupuesto
-    const ctx2 = document.getElementById('budgetChart').getContext('2d');
-    new Chart(ctx2, {
-        type: 'bar',
-        data: {
-            labels: ['Hotel A', 'Hotel B', 'Hotel C', 'Corporativo'],
-            datasets: [{
-                label: 'CAPEX Asignado ($)',
-                data: [1200000, 850000, 2100000, 500000],
-                backgroundColor: '#a68966'
-            }]
+        // 2. CONECTAR CON GOOGLE SHEETS (API REST GET)
+        function cargarDatosDesdeAPI() {
+            fetch(API_URL)
+                .then(response => response.json())
+                .then(data => {
+                    datosGlobales = data.hoteles;
+                    encabezadosGlobales = data.encabezados;
+                    
+                    const select = document.getElementById('selectIncode');
+                    datosGlobales.forEach(hotel => {
+                        let option = document.createElement('option');
+                        option.value = hotel.incode;
+                        option.text = hotel.incode + " - " + hotel.nombre;
+                        select.appendChild(option);
+                    });
+
+                    document.getElementById('loader').style.display = 'none';
+                    document.getElementById('dashboard').style.display = 'block';
+                })
+                .catch(error => {
+                    Swal.fire({ icon: 'error', title: 'Error de Conexión', text: 'No se pudo conectar con la base de datos de Google. Revisa los permisos de la API.', background: '#15332b', color: '#fff' });
+                });
         }
-    });
 
-    // Filtro dinámico de tabla
-    document.getElementById('search').addEventListener('keyup', function() {
-        let val = this.value.toLowerCase();
-        let rows = document.querySelectorAll('#tableBody tr');
-        rows.forEach(row => {
-            row.style.display = row.innerText.toLowerCase().includes(val) ? '' : 'none';
-        });
-    });
-</script>
+        // 3. MOSTRAR LOS 12 ESTATUS DEL HOTEL SELECCIONADO
+        function mostrarRubros() {
+            const incode = document.getElementById('selectIncode').value;
+            if(!incode) return;
 
+            const hotel = datosGlobales.find(h => h.incode === incode);
+            document.getElementById('nombreHotelLabel').innerText = "Editando: " + hotel.nombre;
+            
+            const contenedor = document.getElementById('contenedorDropdowns');
+            contenedor.innerHTML = "";
+
+            encabezadosGlobales.forEach((encabezado, i) => {
+                let estatus = hotel.estatus[i];
+                let claseColor = estatus === 'Pendiente' ? 'status-pendiente' : 'status-entregado';
+                let tituloLimpio = encabezado.replace('Estatus ', '').replace(' (ESG)', '').replace(' (Drive)', '');
+
+                contenedor.innerHTML += `
+                    <div class="col-md-4 mb-4">
+                        <label class="form-label small text-uppercase" style="color:#a8b8c8;">${tituloLimpio}</label>
+                        <select class="form-select status-select ${claseColor}" id="rubro_${i}" onchange="cambiarColor(this)">
+                            <option value="Pendiente" ${estatus === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
+                            <option value="Entregado" ${estatus === 'Entregado' ? 'selected' : ''}>Entregado</option>
+                        </select>
+                    </div>
+                `;
+            });
+
+            document.getElementById('panelRubros').style.display = 'block';
+        }
+
+        // 4. CAMBIAR COLOR AL SELECCIONAR
+        function cambiarColor(selectElement) {
+            selectElement.className = "form-select status-select " + (selectElement.value === 'Pendiente' ? 'status-pendiente' : 'status-entregado');
+        }
+
+        // 5. ENVIAR DATOS A GOOGLE SHEETS (API REST POST)
+        function guardarEnGoogle() {
+            const incode = document.getElementById('selectIncode').value;
+            let nuevosEstatus = [];
+            
+            for(let i=0; i<12; i++) {
+                nuevosEstatus.push(document.getElementById('rubro_' + i).value);
+            }
+
+            Swal.fire({
+                title: 'Sincronizando...',
+                text: 'Guardando datos en la matriz principal de Google Sheets...',
+                background: '#15332b', color: '#fff',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading() }
+            });
+
+            // Enviamos el POST a Google
+            fetch(API_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    incode: incode,
+                    estatus: nuevosEstatus
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if(result.status === "success") {
+                    Swal.fire({ icon: 'success', title: '¡Guardado!', text: 'El estatus de ' + incode + ' fue actualizado con éxito.', background: '#15332b', color: '#fff' })
+                    .then(() => {
+                        // Recargar todo para traer datos frescos
+                        document.getElementById('dashboard').style.display = 'none';
+                        document.getElementById('panelRubros').style.display = 'none';
+                        document.getElementById('loader').style.display = 'block';
+                        document.getElementById('selectIncode').innerHTML = '<option value="" selected disabled>Buscar hotel...</option>';
+                        cargarDatosDesdeAPI();
+                    });
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Error', text: result.message, background: '#15332b', color: '#fff' });
+                }
+            })
+            .catch(error => {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Falló la conexión al guardar. Verifica que tu API permita peticiones POST.', background: '#15332b', color: '#fff' });
+            });
+        }
+    </script>
 </body>
 </html>
