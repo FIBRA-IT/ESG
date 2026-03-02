@@ -104,7 +104,7 @@
             <button class="btn btn-fibra mt-0" style="width: auto; padding: 10px 30px;" onclick="procesarExcel()">
                 <i class="fas fa-sync-alt"></i> Actualizar Base de Datos con Excel
             </button>
-            <p class="small text-muted mt-3 mb-0"><i class="fas fa-info-circle"></i> El Excel debe tener el INCODE en la columna A, y los 12 estatus (Pendiente/Entregado) en las columnas de la B a la M.</p>
+            <p class="small text-muted mt-3 mb-0"><i class="fas fa-info-circle"></i> El Excel debe tener la <strong>CLAVE SITIO en la columna A</strong>, <strong>NOMBRE SITIO en la columna B</strong>, y los 12 estatus a partir de la <strong>columna C</strong>.</p>
         </div>
 
         <div class="card-custom">
@@ -154,7 +154,7 @@
                     encabezadosGlobales = data.encabezados;
                     
                     const select = document.getElementById('selectIncode');
-                    select.innerHTML = '<option value="" selected disabled>Buscar hotel...</option>'; // Limpiar opciones
+                    select.innerHTML = '<option value="" selected disabled>Buscar hotel...</option>'; 
                     datosGlobales.forEach(hotel => {
                         let option = document.createElement('option');
                         option.value = hotel.incode;
@@ -171,7 +171,7 @@
         }
 
         // ==========================================
-        // NUEVO: LÓGICA DE CARGA MASIVA EXCEL
+        // LÓGICA DE CARGA MASIVA EXCEL
         // ==========================================
         function procesarExcel() {
             const fileInput = document.getElementById('excelFile');
@@ -199,7 +199,7 @@
                 // Leer como matriz (array de arrays)
                 const json = XLSX.utils.sheet_to_json(worksheet, {header: 1}); 
 
-                // Descartar encabezados (suponiendo que la fila 1 son títulos)
+                // Descartar la fila 1 (encabezados)
                 const filasDatos = json.slice(1);
                 enviarActualizacionesMasivas(filasDatos);
             };
@@ -211,26 +211,30 @@
             let actualizados = 0;
             let errores = 0;
 
-            // Procesar fila por fila (Col 0 = INCODE, Col 1-12 = Estatus)
+            // Procesar fila por fila 
+            // Col 0 = CLAVE SITIO, Col 1 = NOMBRE SITIO, Col 2 en adelante = Estatus
             for (let fila of filas) {
-                if (!fila[0]) continue; // Si la fila está vacía, saltarla
+                if (!fila[0]) continue; // Si la fila está vacía o no hay INCODE, saltarla
                 
                 let incode = fila[0].toString().trim();
+                
                 // Validar que el INCODE exista en nuestra base
                 let existe = datosGlobales.find(h => h.incode === incode);
                 if (!existe) continue;
 
-                // Extraer los 12 estatus de las siguientes columnas
+                // Extraer los 12 estatus a partir de la columna C (índice 2)
                 let nuevosEstatus = [];
-                for (let i = 1; i <= 12; i++) {
-                    let val = fila[i] ? fila[i].toString().trim() : "Pendiente";
+                for (let i = 0; i < 12; i++) {
+                    let val = fila[i + 2] ? fila[i + 2].toString().trim() : "Pendiente";
+                    
                     // Asegurar que el texto sea exacto para Google Sheets
                     if (val.toLowerCase() === 'entregado') val = 'Entregado';
                     else val = 'Pendiente'; 
+                    
                     nuevosEstatus.push(val);
                 }
 
-                // Enviar petición POST a Google
+                // Enviar petición POST a Google de forma secuencial
                 try {
                     Swal.update({ title: `Sincronizando...`, text: `Procesando hotel: ${incode} (${actualizados + 1}/${filas.length})` });
                     
