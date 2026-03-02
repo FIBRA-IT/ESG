@@ -157,7 +157,7 @@
         }
 
         // ==========================================
-        // LÓGICA DE CARGA MASIVA EXCEL ACTUALIZADA
+        // LÓGICA DE CARGA MASIVA EXCEL CON "MEMORIA NO APLICA"
         // ==========================================
         function procesarExcel() {
             const fileInput = document.getElementById('excelFile');
@@ -203,17 +203,25 @@
 
                 let nuevosEstatus = [];
                 for (let i = 0; i < 12; i++) {
-                    let valOriginal = fila[i + 2] ? fila[i + 2].toString().trim().toLowerCase() : "";
-                    let valFinal = "Pendiente"; // Por defecto, si está vacío o dice otra cosa, es Pendiente
+                    // 1. LEEMOS EL ESTATUS ACTUAL DEL HOTEL EN GOOGLE SHEETS
+                    let estatusBaseDatos = existe.estatus[i];
 
-                    // Lógica inteligente de lectura
-                    if (valOriginal === 'entregado' || valOriginal === 'completo') {
-                        valFinal = 'Entregado';
-                    } else if (valOriginal === 'no aplica') {
-                        valFinal = 'No Aplica';
+                    // 2. LÓGICA AUTOMÁTICA: Si ya es "No Aplica" en la base, lo congelamos.
+                    if (estatusBaseDatos === 'No Aplica') {
+                        nuevosEstatus.push('No Aplica');
+                    } else {
+                        // 3. Si no es "No Aplica", leemos lo que traiga el Excel del proveedor
+                        let valOriginal = fila[i + 2] ? fila[i + 2].toString().trim().toLowerCase() : "";
+                        let valFinal = "Pendiente"; 
+
+                        if (valOriginal === 'entregado' || valOriginal === 'completo') {
+                            valFinal = 'Entregado';
+                        } else if (valOriginal === 'no aplica') {
+                            valFinal = 'No Aplica';
+                        }
+                        
+                        nuevosEstatus.push(valFinal);
                     }
-                    
-                    nuevosEstatus.push(valFinal);
                 }
 
                 try {
@@ -261,14 +269,12 @@
             encabezadosGlobales.forEach((encabezado, i) => {
                 let estatus = hotel.estatus[i] || 'Pendiente';
                 
-                // Determinar el color inicial
                 let claseColor = 'status-pendiente';
                 if(estatus === 'Entregado') claseColor = 'status-entregado';
                 else if(estatus === 'No Aplica') claseColor = 'status-no-aplica';
 
                 let tituloLimpio = encabezado.replace('Estatus ', '').replace(' (ESG)', '').replace(' (Drive)', '');
 
-                // Se agregó la opción "No Aplica" al dropdown
                 contenedor.innerHTML += `
                     <div class="col-md-4 mb-4">
                         <label class="form-label small text-uppercase" style="color:#a8b8c8;">${tituloLimpio}</label>
