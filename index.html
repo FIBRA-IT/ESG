@@ -18,21 +18,8 @@
         }
         
         /* ESTILOS DEL LOGIN */
-        .login-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-        .login-card {
-            background-color: #15332b;
-            border-radius: 8px;
-            padding: 40px;
-            width: 100%;
-            max-width: 400px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            border-top: 3px solid #c4d600; /* Lima Fibra Inn */
-        }
+        .login-container { display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .login-card { background-color: #15332b; border-radius: 8px; padding: 40px; width: 100%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border-top: 3px solid #c4d600; }
         .login-logo { text-align: center; margin-bottom: 20px; }
         .login-logo img { width: 100px; border-radius: 8px; }
         .login-title { text-align: center; font-size: 1.2rem; margin-bottom: 30px; font-weight: 600; }
@@ -52,6 +39,7 @@
         .status-select { background-color: #0b1f1a; border: 1px solid #2d5a4c; color: white; font-weight: bold; }
         .status-pendiente { color: #ff6b6b !important; }
         .status-entregado { color: #51cf66 !important; }
+        .status-no-aplica { color: #a8b8c8 !important; } /* Nuevo color gris para No Aplica */
         
         #loader { display: none; text-align: center; margin-top: 50px; }
         .spinner-fibra { color: #c4d600; }
@@ -104,7 +92,7 @@
             <button class="btn btn-fibra mt-0" style="width: auto; padding: 10px 30px;" onclick="procesarExcel()">
                 <i class="fas fa-sync-alt"></i> Actualizar Base de Datos con Excel
             </button>
-            <p class="small text-muted mt-3 mb-0"><i class="fas fa-info-circle"></i> El Excel debe tener la <strong>CLAVE SITIO en la columna A</strong>, <strong>NOMBRE SITIO en la columna B</strong>, y los 12 estatus a partir de la <strong>columna C</strong>.</p>
+            <p class="small text-muted mt-3 mb-0"><i class="fas fa-info-circle"></i> El Excel debe tener la <strong>CLAVE SITIO en la columna A</strong>, <strong>NOMBRE SITIO en la columna B</strong>, y los estatus a partir de la <strong>columna C</strong>.</p>
         </div>
 
         <div class="card-custom">
@@ -131,7 +119,6 @@
         let datosGlobales = [];
         let encabezadosGlobales = [];
 
-        // 1. SISTEMA DE LOGIN
         function iniciarSesion() {
             const u = document.getElementById('user').value;
             const p = document.getElementById('pass').value;
@@ -145,7 +132,6 @@
             }
         }
 
-        // 2. CONECTAR CON GOOGLE SHEETS
         function cargarDatosDesdeAPI() {
             fetch(API_URL)
                 .then(response => response.json())
@@ -171,7 +157,7 @@
         }
 
         // ==========================================
-        // LÓGICA DE CARGA MASIVA EXCEL
+        // LÓGICA DE CARGA MASIVA EXCEL ACTUALIZADA
         // ==========================================
         function procesarExcel() {
             const fileInput = document.getElementById('excelFile');
@@ -185,7 +171,7 @@
 
             Swal.fire({
                 title: 'Leyendo Excel...',
-                text: 'Cruzando INCODEs...',
+                text: 'Cruzando INCODEs y estatus...',
                 background: '#15332b', color: '#fff',
                 allowOutsideClick: false,
                 didOpen: () => { Swal.showLoading() }
@@ -196,14 +182,11 @@
                 const workbook = XLSX.read(data, {type: 'array'});
                 const firstSheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[firstSheetName];
-                // Leer como matriz (array de arrays)
                 const json = XLSX.utils.sheet_to_json(worksheet, {header: 1}); 
 
-                // Descartar la fila 1 (encabezados)
                 const filasDatos = json.slice(1);
                 enviarActualizacionesMasivas(filasDatos);
             };
-
             reader.readAsArrayBuffer(file);
         }
 
@@ -211,30 +194,28 @@
             let actualizados = 0;
             let errores = 0;
 
-            // Procesar fila por fila 
-            // Col 0 = CLAVE SITIO, Col 1 = NOMBRE SITIO, Col 2 en adelante = Estatus
             for (let fila of filas) {
-                if (!fila[0]) continue; // Si la fila está vacía o no hay INCODE, saltarla
-                
+                if (!fila[0]) continue; 
                 let incode = fila[0].toString().trim();
                 
-                // Validar que el INCODE exista en nuestra base
                 let existe = datosGlobales.find(h => h.incode === incode);
                 if (!existe) continue;
 
-                // Extraer los 12 estatus a partir de la columna C (índice 2)
                 let nuevosEstatus = [];
                 for (let i = 0; i < 12; i++) {
-                    let val = fila[i + 2] ? fila[i + 2].toString().trim() : "Pendiente";
+                    let valOriginal = fila[i + 2] ? fila[i + 2].toString().trim().toLowerCase() : "";
+                    let valFinal = "Pendiente"; // Por defecto, si está vacío o dice otra cosa, es Pendiente
+
+                    // Lógica inteligente de lectura
+                    if (valOriginal === 'entregado' || valOriginal === 'completo') {
+                        valFinal = 'Entregado';
+                    } else if (valOriginal === 'no aplica') {
+                        valFinal = 'No Aplica';
+                    }
                     
-                    // Asegurar que el texto sea exacto para Google Sheets
-                    if (val.toLowerCase() === 'entregado') val = 'Entregado';
-                    else val = 'Pendiente'; 
-                    
-                    nuevosEstatus.push(val);
+                    nuevosEstatus.push(valFinal);
                 }
 
-                // Enviar petición POST a Google de forma secuencial
                 try {
                     Swal.update({ title: `Sincronizando...`, text: `Procesando hotel: ${incode} (${actualizados + 1}/${filas.length})` });
                     
@@ -250,24 +231,22 @@
                 }
             }
 
-            // Terminado el bucle
             Swal.fire({
                 icon: errores === 0 ? 'success' : 'warning',
                 title: 'Proceso Terminado',
                 text: `Se actualizaron ${actualizados} hoteles. ${errores > 0 ? 'Hubo ' + errores + ' errores.' : ''}`,
                 background: '#15332b', color: '#fff'
             }).then(() => {
-                // Recargar todo para traer datos frescos
                 document.getElementById('dashboard').style.display = 'none';
                 document.getElementById('panelRubros').style.display = 'none';
                 document.getElementById('loader').style.display = 'block';
                 cargarDatosDesdeAPI();
-                document.getElementById('excelFile').value = ""; // Limpiar input
+                document.getElementById('excelFile').value = ""; 
             });
         }
 
         // ==========================================
-        // LÓGICA DE EDICIÓN INDIVIDUAL MANUAL
+        // LÓGICA DE EDICIÓN MANUAL ACTUALIZADA
         // ==========================================
         function mostrarRubros() {
             const incode = document.getElementById('selectIncode').value;
@@ -280,16 +259,23 @@
             contenedor.innerHTML = "";
 
             encabezadosGlobales.forEach((encabezado, i) => {
-                let estatus = hotel.estatus[i];
-                let claseColor = estatus === 'Pendiente' ? 'status-pendiente' : 'status-entregado';
+                let estatus = hotel.estatus[i] || 'Pendiente';
+                
+                // Determinar el color inicial
+                let claseColor = 'status-pendiente';
+                if(estatus === 'Entregado') claseColor = 'status-entregado';
+                else if(estatus === 'No Aplica') claseColor = 'status-no-aplica';
+
                 let tituloLimpio = encabezado.replace('Estatus ', '').replace(' (ESG)', '').replace(' (Drive)', '');
 
+                // Se agregó la opción "No Aplica" al dropdown
                 contenedor.innerHTML += `
                     <div class="col-md-4 mb-4">
                         <label class="form-label small text-uppercase" style="color:#a8b8c8;">${tituloLimpio}</label>
                         <select class="form-select status-select ${claseColor}" id="rubro_${i}" onchange="cambiarColor(this)">
                             <option value="Pendiente" ${estatus === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
                             <option value="Entregado" ${estatus === 'Entregado' ? 'selected' : ''}>Entregado</option>
+                            <option value="No Aplica" ${estatus === 'No Aplica' ? 'selected' : ''}>No Aplica</option>
                         </select>
                     </div>
                 `;
@@ -299,7 +285,9 @@
         }
 
         function cambiarColor(selectElement) {
-            selectElement.className = "form-select status-select " + (selectElement.value === 'Pendiente' ? 'status-pendiente' : 'status-entregado');
+            if(selectElement.value === 'Pendiente') selectElement.className = "form-select status-select status-pendiente";
+            else if(selectElement.value === 'Entregado') selectElement.className = "form-select status-select status-entregado";
+            else if(selectElement.value === 'No Aplica') selectElement.className = "form-select status-select status-no-aplica";
         }
 
         function guardarEnGoogle() {
