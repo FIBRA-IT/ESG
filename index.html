@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ESG INN - Panel de Control</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
         body {
@@ -32,80 +33,32 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             border-top: 3px solid #c4d600; /* Lima Fibra Inn */
         }
-        .login-logo {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .login-logo img {
-            width: 100px;
-            border-radius: 8px;
-        }
-        .login-title {
-            text-align: center;
-            font-size: 1.2rem;
-            margin-bottom: 30px;
-            font-weight: 600;
-        }
-        .form-control {
-            background-color: #0b1f1a;
-            border: 1px solid #2d5a4c;
-            color: white;
-        }
-        .form-control:focus {
-            background-color: #0b1f1a;
-            color: white;
-            border-color: #c4d600;
-            box-shadow: 0 0 0 0.25rem rgba(196, 214, 0, 0.25);
-        }
-        .btn-fibra {
-            background-color: #c4d600;
-            color: #0b1f1a;
-            font-weight: bold;
-            border: none;
-            width: 100%;
-            padding: 10px;
-            border-radius: 4px;
-            margin-top: 20px;
-        }
-        .btn-fibra:hover {
-            background-color: #aaba00;
-            color: #0b1f1a;
-        }
-        .input-icon {
-            color: #c4d600;
-            font-size: 0.9rem;
-            margin-bottom: 5px;
-            display: block;
-        }
+        .login-logo { text-align: center; margin-bottom: 20px; }
+        .login-logo img { width: 100px; border-radius: 8px; }
+        .login-title { text-align: center; font-size: 1.2rem; margin-bottom: 30px; font-weight: 600; }
+        
+        .form-control { background-color: #0b1f1a; border: 1px solid #2d5a4c; color: white; }
+        .form-control:focus { background-color: #0b1f1a; color: white; border-color: #c4d600; box-shadow: 0 0 0 0.25rem rgba(196, 214, 0, 0.25); }
+        
+        .btn-fibra { background-color: #c4d600; color: #0b1f1a; font-weight: bold; border: none; width: 100%; padding: 10px; border-radius: 4px; margin-top: 20px; }
+        .btn-fibra:hover { background-color: #aaba00; color: #0b1f1a; }
+        .input-icon { color: #c4d600; font-size: 0.9rem; margin-bottom: 5px; display: block; }
 
         /* ESTILOS DEL DASHBOARD */
         #dashboard { display: none; padding-top: 30px; padding-bottom: 50px;}
-        .dash-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            border-bottom: 1px solid #2d5a4c;
-            padding-bottom: 15px;
-        }
-        .card-custom {
-            background-color: #15332b;
-            border-radius: 8px;
-            border-top: 3px solid #c4d600;
-            padding: 25px;
-            margin-bottom: 20px;
-        }
-        .status-select {
-            background-color: #0b1f1a;
-            border: 1px solid #2d5a4c;
-            color: white;
-            font-weight: bold;
-        }
+        .dash-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 1px solid #2d5a4c; padding-bottom: 15px; }
+        .card-custom { background-color: #15332b; border-radius: 8px; border-top: 3px solid #c4d600; padding: 25px; margin-bottom: 20px; }
+        
+        .status-select { background-color: #0b1f1a; border: 1px solid #2d5a4c; color: white; font-weight: bold; }
         .status-pendiente { color: #ff6b6b !important; }
         .status-entregado { color: #51cf66 !important; }
         
         #loader { display: none; text-align: center; margin-top: 50px; }
         .spinner-fibra { color: #c4d600; }
+        
+        /* ESTILOS DE CARGA DE ARCHIVO */
+        .file-upload-wrapper { border: 2px dashed #2d5a4c; border-radius: 8px; padding: 20px; text-align: center; background-color: #0b1f1a; margin-bottom: 15px; }
+        input[type="file"]::file-selector-button { background-color: #2d5a4c; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; margin-right: 15px; }
     </style>
 </head>
 <body>
@@ -138,37 +91,43 @@
         <div class="dash-header">
             <div class="d-flex align-items-center">
                 <img src="https://media.licdn.com/dms/image/v2/D560BAQHevH5LsJpmXQ/company-logo_200_200/B56Zi.DanDG4AI-/0/1755535223547/fibrainn_logo?e=2147483647&v=beta&t=IYGkfmXcHxEqXIvZ59Fyp20tYrYLykd70Ot_0YBIN1k" width="50" style="border-radius: 5px; margin-right: 15px;">
-                <h2 class="mb-0">ESG INN <span style="color: #c4d600;">| Control de Estatus</span></h2>
+                <h2 class="mb-0">ESG INN <span style="color: #c4d600;">| Panel de Control</span></h2>
             </div>
             <button class="btn btn-outline-light btn-sm" onclick="location.reload()"><i class="fas fa-sign-out-alt"></i> Salir</button>
         </div>
 
         <div class="card-custom">
-            <label class="form-label fw-bold" style="color: #c4d600;"><i class="fas fa-building"></i> 1. Selecciona el Hotel (INCODE):</label>
+            <h5 style="color: #c4d600; margin-bottom: 20px;"><i class="fas fa-file-excel"></i> Carga Masiva Rápida (Excel)</h5>
+            <div class="file-upload-wrapper">
+                <input type="file" id="excelFile" accept=".xlsx, .xls">
+            </div>
+            <button class="btn btn-fibra mt-0" style="width: auto; padding: 10px 30px;" onclick="procesarExcel()">
+                <i class="fas fa-sync-alt"></i> Actualizar Base de Datos con Excel
+            </button>
+            <p class="small text-muted mt-3 mb-0"><i class="fas fa-info-circle"></i> El Excel debe tener el INCODE en la columna A, y los 12 estatus (Pendiente/Entregado) en las columnas de la B a la M.</p>
+        </div>
+
+        <div class="card-custom">
+            <label class="form-label fw-bold" style="color: #c4d600;"><i class="fas fa-building"></i> O Edita un Hotel Individual (INCODE):</label>
             <select id="selectIncode" class="form-select status-select form-select-lg" onchange="mostrarRubros()">
                 <option value="" selected disabled>Buscar hotel...</option>
-                </select>
+            </select>
         </div>
 
         <div id="panelRubros" class="card-custom" style="display: none;">
             <h4 id="nombreHotelLabel" style="color: #c4d600; margin-bottom: 25px;"></h4>
-            <div class="row" id="contenedorDropdowns">
-                </div>
+            <div class="row" id="contenedorDropdowns"></div>
             <hr style="border-color: #2d5a4c; margin: 30px 0;">
             <div class="text-end">
                 <button class="btn btn-fibra px-5" style="width: auto;" onclick="guardarEnGoogle()">
-                    <i class="fas fa-save"></i> Guardar Cambios en Base de Datos
+                    <i class="fas fa-save"></i> Guardar Cambios Individuales
                 </button>
             </div>
         </div>
     </div>
 
     <script>
-        // ==========================================
-        // AQUÍ ESTÁ TU API YA CONECTADA:
-        // ==========================================
         const API_URL = "https://script.google.com/macros/s/AKfycbwu4BMuNm42AZvlw6mg3RtNOXWaFlDr8abO_-IXl7PBMV4eYZTRo8EI22hac7wKyp2tEw/exec"; 
-        
         let datosGlobales = [];
         let encabezadosGlobales = [];
 
@@ -177,7 +136,6 @@
             const u = document.getElementById('user').value;
             const p = document.getElementById('pass').value;
 
-            // Credenciales que me pediste
             if(u === "ESG" && p === "2250") {
                 document.getElementById('loginScreen').style.display = 'none';
                 document.getElementById('loader').style.display = 'block';
@@ -187,7 +145,7 @@
             }
         }
 
-        // 2. CONECTAR CON GOOGLE SHEETS (API REST GET)
+        // 2. CONECTAR CON GOOGLE SHEETS
         function cargarDatosDesdeAPI() {
             fetch(API_URL)
                 .then(response => response.json())
@@ -196,6 +154,7 @@
                     encabezadosGlobales = data.encabezados;
                     
                     const select = document.getElementById('selectIncode');
+                    select.innerHTML = '<option value="" selected disabled>Buscar hotel...</option>'; // Limpiar opciones
                     datosGlobales.forEach(hotel => {
                         let option = document.createElement('option');
                         option.value = hotel.incode;
@@ -207,17 +166,111 @@
                     document.getElementById('dashboard').style.display = 'block';
                 })
                 .catch(error => {
-                    Swal.fire({ icon: 'error', title: 'Error de Conexión', text: 'No se pudo conectar con la base de datos de Google. Revisa los permisos de la API.', background: '#15332b', color: '#fff' });
+                    Swal.fire({ icon: 'error', title: 'Error de Conexión', text: 'No se pudo conectar con Google.', background: '#15332b', color: '#fff' });
                 });
         }
 
-        // 3. MOSTRAR LOS 12 ESTATUS DEL HOTEL SELECCIONADO
+        // ==========================================
+        // NUEVO: LÓGICA DE CARGA MASIVA EXCEL
+        // ==========================================
+        function procesarExcel() {
+            const fileInput = document.getElementById('excelFile');
+            if (!fileInput.files.length) {
+                Swal.fire({ icon: 'warning', title: 'Falta Archivo', text: 'Por favor selecciona un archivo Excel primero.', background: '#15332b', color: '#fff' });
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            Swal.fire({
+                title: 'Leyendo Excel...',
+                text: 'Cruzando INCODEs...',
+                background: '#15332b', color: '#fff',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading() }
+            });
+
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                // Leer como matriz (array de arrays)
+                const json = XLSX.utils.sheet_to_json(worksheet, {header: 1}); 
+
+                // Descartar encabezados (suponiendo que la fila 1 son títulos)
+                const filasDatos = json.slice(1);
+                enviarActualizacionesMasivas(filasDatos);
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+
+        async function enviarActualizacionesMasivas(filas) {
+            let actualizados = 0;
+            let errores = 0;
+
+            // Procesar fila por fila (Col 0 = INCODE, Col 1-12 = Estatus)
+            for (let fila of filas) {
+                if (!fila[0]) continue; // Si la fila está vacía, saltarla
+                
+                let incode = fila[0].toString().trim();
+                // Validar que el INCODE exista en nuestra base
+                let existe = datosGlobales.find(h => h.incode === incode);
+                if (!existe) continue;
+
+                // Extraer los 12 estatus de las siguientes columnas
+                let nuevosEstatus = [];
+                for (let i = 1; i <= 12; i++) {
+                    let val = fila[i] ? fila[i].toString().trim() : "Pendiente";
+                    // Asegurar que el texto sea exacto para Google Sheets
+                    if (val.toLowerCase() === 'entregado') val = 'Entregado';
+                    else val = 'Pendiente'; 
+                    nuevosEstatus.push(val);
+                }
+
+                // Enviar petición POST a Google
+                try {
+                    Swal.update({ title: `Sincronizando...`, text: `Procesando hotel: ${incode} (${actualizados + 1}/${filas.length})` });
+                    
+                    let response = await fetch(API_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ incode: incode, estatus: nuevosEstatus })
+                    });
+                    let result = await response.json();
+                    if(result.status === "success") actualizados++;
+                    else errores++;
+                } catch (err) {
+                    errores++;
+                }
+            }
+
+            // Terminado el bucle
+            Swal.fire({
+                icon: errores === 0 ? 'success' : 'warning',
+                title: 'Proceso Terminado',
+                text: `Se actualizaron ${actualizados} hoteles. ${errores > 0 ? 'Hubo ' + errores + ' errores.' : ''}`,
+                background: '#15332b', color: '#fff'
+            }).then(() => {
+                // Recargar todo para traer datos frescos
+                document.getElementById('dashboard').style.display = 'none';
+                document.getElementById('panelRubros').style.display = 'none';
+                document.getElementById('loader').style.display = 'block';
+                cargarDatosDesdeAPI();
+                document.getElementById('excelFile').value = ""; // Limpiar input
+            });
+        }
+
+        // ==========================================
+        // LÓGICA DE EDICIÓN INDIVIDUAL MANUAL
+        // ==========================================
         function mostrarRubros() {
             const incode = document.getElementById('selectIncode').value;
             if(!incode) return;
 
             const hotel = datosGlobales.find(h => h.incode === incode);
-            document.getElementById('nombreHotelLabel').innerText = "Editando: " + hotel.nombre;
+            document.getElementById('nombreHotelLabel').innerText = "Editando Manualmente: " + hotel.nombre;
             
             const contenedor = document.getElementById('contenedorDropdowns');
             contenedor.innerHTML = "";
@@ -241,12 +294,10 @@
             document.getElementById('panelRubros').style.display = 'block';
         }
 
-        // 4. CAMBIAR COLOR AL SELECCIONAR
         function cambiarColor(selectElement) {
             selectElement.className = "form-select status-select " + (selectElement.value === 'Pendiente' ? 'status-pendiente' : 'status-entregado');
         }
 
-        // 5. ENVIAR DATOS A GOOGLE SHEETS (API REST POST)
         function guardarEnGoogle() {
             const incode = document.getElementById('selectIncode').value;
             let nuevosEstatus = [];
@@ -263,24 +314,18 @@
                 didOpen: () => { Swal.showLoading() }
             });
 
-            // Enviamos el POST a Google
             fetch(API_URL, {
                 method: 'POST',
-                body: JSON.stringify({
-                    incode: incode,
-                    estatus: nuevosEstatus
-                })
+                body: JSON.stringify({ incode: incode, estatus: nuevosEstatus })
             })
             .then(response => response.json())
             .then(result => {
                 if(result.status === "success") {
                     Swal.fire({ icon: 'success', title: '¡Guardado!', text: 'El estatus de ' + incode + ' fue actualizado con éxito.', background: '#15332b', color: '#fff' })
                     .then(() => {
-                        // Recargar todo para traer datos frescos
                         document.getElementById('dashboard').style.display = 'none';
                         document.getElementById('panelRubros').style.display = 'none';
                         document.getElementById('loader').style.display = 'block';
-                        document.getElementById('selectIncode').innerHTML = '<option value="" selected disabled>Buscar hotel...</option>';
                         cargarDatosDesdeAPI();
                     });
                 } else {
@@ -288,7 +333,7 @@
                 }
             })
             .catch(error => {
-                Swal.fire({ icon: 'error', title: 'Error', text: 'Falló la conexión al guardar. Verifica que tu API permita peticiones POST.', background: '#15332b', color: '#fff' });
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Falló la conexión al guardar.', background: '#15332b', color: '#fff' });
             });
         }
     </script>
