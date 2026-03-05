@@ -69,7 +69,7 @@
         </div>
 
         <div class="card-custom">
-            <h5 style="color: #c4d600; margin-bottom: 20px;"><i class="fas fa-file-excel"></i> Carga Masiva (Traducción Automática al Sheets)</h5>
+            <h5 style="color: #c4d600; margin-bottom: 20px;"><i class="fas fa-file-excel"></i> Carga Masiva Inteligente</h5>
             <div class="file-upload-wrapper">
                 <input type="file" id="excelFile" accept=".xlsx, .xls">
             </div>
@@ -143,39 +143,31 @@
             }
             const file = fileInput.files[0];
             const reader = new FileReader();
-            Swal.fire({ title: 'Leyendo...', text: 'Traduciendo formatos (Pendiente, Sin Carga, Completo)...', background: '#15332b', color: '#fff', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+            Swal.fire({ title: 'Leyendo...', text: 'Buscando pestañas Overall y Fuentes...', background: '#15332b', color: '#fff', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
 
             reader.onload = function(e) {
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, {type: 'array'});
                 const sheetNombres = workbook.SheetNames;
                 
-                const nombreHojaOverall = sheetNombres.find(n => n.includes("Overall"));
-                const nombreHojaFuentes = sheetNombres.find(n => n.includes("Fuentes"));
+                // BUSCADOR RÁPIDO: Ignora el mes, solo busca la palabra clave.
+                const nombreHojaOverall = sheetNombres.find(n => n.toLowerCase().includes("overall"));
+                const nombreHojaFuentes = sheetNombres.find(n => n.toLowerCase().includes("fuentes"));
 
                 if (!nombreHojaOverall || !nombreHojaFuentes) {
-                    Swal.fire({ icon: 'error', title: 'Error', text: 'Faltan las pestañas Overall o Fuentes.', background: '#15332b', color: '#fff' }); return;
+                    Swal.fire({ icon: 'error', title: 'Pestañas no encontradas', text: 'El Excel debe contener una pestaña que incluya "Overall" en su nombre y otra que incluya "Fuentes".', background: '#15332b', color: '#fff' }); return;
                 }
 
                 const hojaOverall = XLSX.utils.sheet_to_json(workbook.Sheets[nombreHojaOverall], {header: 1, defval: ""});
                 const hojaFuentes = XLSX.utils.sheet_to_json(workbook.Sheets[nombreHojaFuentes], {header: 1, defval: ""});
 
-                // FUNCIÓN DE TRADUCCIÓN MEJORADA
                 function traducirEstatus(valor, esResiduo) {
-                    if (!valor) return "Pendiente"; // Si viene vacía
+                    if (!valor) return "Pendiente"; 
                     let v = valor.toString().toLowerCase().trim();
-                    
-                    // Si viene completo, lo marcamos como Entregado (para el color verde)
                     if (v === "completo" || v === "entregado") return "Entregado";
-                    
-                    // REGLA DE ORO: Si es Residuo, IGNORAMOS el "No aplica" y forzamos a Pendiente
                     if (esResiduo && (v.includes("no aplica") || v === "n/a")) return "Pendiente";
-                    
-                    // Si dice no aplica y NO es residuo, sí lo respetamos
                     if (v.includes("no aplica") || v === "n/a" || v.includes("ref")) return "No aplica";
-                    
-                    // Por descarte: Si dice "incompleto", "sin carga", "pendiente", u otra basura -> Pendiente
-                    return "Pendiente";
+                    return "Pendiente"; // Esto atrapa Incompleto, Sin Carga, etc.
                 }
 
                 // 1. LEER AGUA (HOJA FUENTES)
@@ -225,15 +217,14 @@
 
                         let agua = datosAgua[incode] || { aguaCiudad: "Pendiente", aguaPipa: "Pendiente", aguaTratada: "Pendiente", aguaPozo: "Pendiente", aguaParqueInd: "Pendiente" };
 
-                        // NOTA: A los Residuos (índice M y N) les pasamos 'true' para que jamás dejen pasar un "No Aplica"
                         let estatus12 = [
                             colElec !== -1 ? traducirEstatus(fila[colElec], false) : "Pendiente",        // 0. H: Electricidad
                             colGasNat !== -1 ? traducirEstatus(fila[colGasNat], false) : "Pendiente",    // 1. I: Gas Natural
                             colGasLP !== -1 ? traducirEstatus(fila[colGasLP], false) : "Pendiente",      // 2. J: Gas LP
                             colGasol !== -1 ? traducirEstatus(fila[colGasol], false) : "Pendiente",      // 3. K: Gasolina
                             colDiesel !== -1 ? traducirEstatus(fila[colDiesel], false) : "Pendiente",    // 4. L: Diesel
-                            colResPort !== -1 ? traducirEstatus(fila[colResPort], true) : "Pendiente",   // 5. M: Residuos Portal (ES RESIDUO = TRUE)
-                            colResRec !== -1 ? traducirEstatus(fila[colResRec], true) : "Pendiente",     // 6. N: Residuos Recibos (ES RESIDUO = TRUE)
+                            colResPort !== -1 ? traducirEstatus(fila[colResPort], true) : "Pendiente",   // 5. M: Residuos Portal
+                            colResRec !== -1 ? traducirEstatus(fila[colResRec], true) : "Pendiente",     // 6. N: Residuos Recibos
                             agua.aguaCiudad,                                                             // 7. O: Agua ciudad
                             agua.aguaPipa,                                                               // 8. P: Agua de Pipa
                             agua.aguaTratada,                                                            // 9. Q: Agua Tratada
