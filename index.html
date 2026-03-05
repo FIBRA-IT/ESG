@@ -143,14 +143,13 @@
             }
             const file = fileInput.files[0];
             const reader = new FileReader();
-            Swal.fire({ title: 'Leyendo...', text: 'Tradujendo formato y armando paquete...', background: '#15332b', color: '#fff', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+            Swal.fire({ title: 'Leyendo...', text: 'Traduciendo formatos (Pendiente, Sin Carga, Completo)...', background: '#15332b', color: '#fff', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
 
             reader.onload = function(e) {
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, {type: 'array'});
                 const sheetNombres = workbook.SheetNames;
                 
-                // Mantiene compatibilidad con el formato de 2 hojas de ASG
                 const nombreHojaOverall = sheetNombres.find(n => n.includes("Overall"));
                 const nombreHojaFuentes = sheetNombres.find(n => n.includes("Fuentes"));
 
@@ -161,11 +160,21 @@
                 const hojaOverall = XLSX.utils.sheet_to_json(workbook.Sheets[nombreHojaOverall], {header: 1, defval: ""});
                 const hojaFuentes = XLSX.utils.sheet_to_json(workbook.Sheets[nombreHojaFuentes], {header: 1, defval: ""});
 
-                function traducirEstatus(valor) {
-                    if (!valor) return "Pendiente";
+                // FUNCIÓN DE TRADUCCIÓN MEJORADA
+                function traducirEstatus(valor, esResiduo) {
+                    if (!valor) return "Pendiente"; // Si viene vacía
                     let v = valor.toString().toLowerCase().trim();
+                    
+                    // Si viene completo, lo marcamos como Entregado (para el color verde)
                     if (v === "completo" || v === "entregado") return "Entregado";
+                    
+                    // REGLA DE ORO: Si es Residuo, IGNORAMOS el "No aplica" y forzamos a Pendiente
+                    if (esResiduo && (v.includes("no aplica") || v === "n/a")) return "Pendiente";
+                    
+                    // Si dice no aplica y NO es residuo, sí lo respetamos
                     if (v.includes("no aplica") || v === "n/a" || v.includes("ref")) return "No aplica";
+                    
+                    // Por descarte: Si dice "incompleto", "sin carga", "pendiente", u otra basura -> Pendiente
                     return "Pendiente";
                 }
 
@@ -186,11 +195,11 @@
                         if (!incode || incode.toLowerCase().includes("grupo") || incode.toLowerCase().includes("servicio")) continue;
                         
                         datosAgua[incode] = {
-                            aguaCiudad: colCiud !== -1 ? traducirEstatus(fila[colCiud]) : "Pendiente",
-                            aguaPipa: colPipa !== -1 ? traducirEstatus(fila[colPipa]) : "Pendiente",
-                            aguaTratada: colTrat !== -1 ? traducirEstatus(fila[colTrat]) : "Pendiente",
-                            aguaPozo: colPozo !== -1 ? traducirEstatus(fila[colPozo]) : "Pendiente",
-                            aguaParqueInd: colParq !== -1 ? traducirEstatus(fila[colParq]) : "Pendiente"
+                            aguaCiudad: colCiud !== -1 ? traducirEstatus(fila[colCiud], false) : "Pendiente",
+                            aguaPipa: colPipa !== -1 ? traducirEstatus(fila[colPipa], false) : "Pendiente",
+                            aguaTratada: colTrat !== -1 ? traducirEstatus(fila[colTrat], false) : "Pendiente",
+                            aguaPozo: colPozo !== -1 ? traducirEstatus(fila[colPozo], false) : "Pendiente",
+                            aguaParqueInd: colParq !== -1 ? traducirEstatus(fila[colParq], false) : "Pendiente"
                         };
                     }
                 }
@@ -216,21 +225,20 @@
 
                         let agua = datosAgua[incode] || { aguaCiudad: "Pendiente", aguaPipa: "Pendiente", aguaTratada: "Pendiente", aguaPozo: "Pendiente", aguaParqueInd: "Pendiente" };
 
-                        // ORDEN ABSOLUTO COMO ESTÁ EN TU GOOGLE SHEETS HOY (H->S)
-                        // ¡El código adapta el desorden de ASG al orden perfecto de tu Sheet!
+                        // NOTA: A los Residuos (índice M y N) les pasamos 'true' para que jamás dejen pasar un "No Aplica"
                         let estatus12 = [
-                            colResRec !== -1 ? traducirEstatus(fila[colResRec]) : "Pendiente",    // 0. H: Residuos Drive (Recibos)
-                            colResPort !== -1 ? traducirEstatus(fila[colResPort]) : "Pendiente",  // 1. I: Residuos ESG (Portal)
-                            colGasLP !== -1 ? traducirEstatus(fila[colGasLP]) : "Pendiente",      // 2. J: Gas LP
-                            colDiesel !== -1 ? traducirEstatus(fila[colDiesel]) : "Pendiente",    // 3. K: Diésel
-                            colGasol !== -1 ? traducirEstatus(fila[colGasol]) : "Pendiente",      // 4. L: Gasolina
-                            agua.aguaCiudad,                                                      // 5. M: Agua ciudad
-                            agua.aguaPipa,                                                        // 6. N: Agua de Pipa
-                            agua.aguaPozo,                                                        // 7. O: Agua de Pozo
-                            agua.aguaTratada,                                                     // 8. P: Agua Tratada
-                            agua.aguaParqueInd,                                                   // 9. Q: Agua Parque Ind
-                            colElec !== -1 ? traducirEstatus(fila[colElec]) : "Pendiente",        // 10. R: Luz
-                            colGasNat !== -1 ? traducirEstatus(fila[colGasNat]) : "Pendiente"     // 11. S: Gas Natural
+                            colElec !== -1 ? traducirEstatus(fila[colElec], false) : "Pendiente",        // 0. H: Electricidad
+                            colGasNat !== -1 ? traducirEstatus(fila[colGasNat], false) : "Pendiente",    // 1. I: Gas Natural
+                            colGasLP !== -1 ? traducirEstatus(fila[colGasLP], false) : "Pendiente",      // 2. J: Gas LP
+                            colGasol !== -1 ? traducirEstatus(fila[colGasol], false) : "Pendiente",      // 3. K: Gasolina
+                            colDiesel !== -1 ? traducirEstatus(fila[colDiesel], false) : "Pendiente",    // 4. L: Diesel
+                            colResPort !== -1 ? traducirEstatus(fila[colResPort], true) : "Pendiente",   // 5. M: Residuos Portal (ES RESIDUO = TRUE)
+                            colResRec !== -1 ? traducirEstatus(fila[colResRec], true) : "Pendiente",     // 6. N: Residuos Recibos (ES RESIDUO = TRUE)
+                            agua.aguaCiudad,                                                             // 7. O: Agua ciudad
+                            agua.aguaPipa,                                                               // 8. P: Agua de Pipa
+                            agua.aguaTratada,                                                            // 9. Q: Agua Tratada
+                            agua.aguaPozo,                                                               // 10. R: Agua de Pozo
+                            agua.aguaParqueInd                                                           // 11. S: Agua Parque Ind
                         ];
                         actualizaciones.push({ incode: incode, estatus: estatus12 });
                     }
