@@ -69,14 +69,13 @@
         </div>
 
         <div class="card-custom">
-            <h5 style="color: #c4d600; margin-bottom: 20px;"><i class="fas fa-file-excel"></i> Carga Masiva Inteligente (Sobrescritura Total)</h5>
+            <h5 style="color: #c4d600; margin-bottom: 20px;"><i class="fas fa-file-excel"></i> Carga Masiva (Traducción Automática al Sheets)</h5>
             <div class="file-upload-wrapper">
                 <input type="file" id="excelFile" accept=".xlsx, .xls">
             </div>
             <button class="btn btn-fibra mt-0" style="width: auto; padding: 10px 30px;" onclick="procesarExcel()">
                 <i class="fas fa-sync-alt"></i> Extraer y Sobrescribir Datos
             </button>
-            <p class="small text-muted mt-3 mb-0"><i class="fas fa-info-circle"></i> El sistema leerá el Excel y forzará la actualización de todos los datos, limpiando errores previos.</p>
         </div>
 
         <div class="card-custom">
@@ -122,7 +121,6 @@
                 .then(data => {
                     datosGlobales = data.hoteles;
                     encabezadosGlobales = data.encabezados;
-                    
                     const select = document.getElementById('selectIncode');
                     select.innerHTML = '<option value="" selected disabled>Buscar hotel...</option>'; 
                     datosGlobales.forEach(hotel => {
@@ -131,47 +129,33 @@
                         option.text = hotel.incode + " - " + hotel.nombre;
                         select.appendChild(option);
                     });
-
                     document.getElementById('loader').style.display = 'none';
                     document.getElementById('dashboard').style.display = 'block';
-                })
-                .catch(error => {
-                    Swal.fire({ icon: 'error', title: 'Error de Conexión', text: 'No se pudo conectar con Google.', background: '#15332b', color: '#fff' });
+                }).catch(error => {
+                    Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo conectar con Google.', background: '#15332b', color: '#fff' });
                 });
         }
 
-        // ==========================================
-        // LÓGICA DE CARGA MASIVA SIN MEMORIA (SOBRESCRITURA TOTAL)
-        // ==========================================
         function procesarExcel() {
             const fileInput = document.getElementById('excelFile');
             if (!fileInput.files.length) {
-                Swal.fire({ icon: 'warning', title: 'Falta Archivo', text: 'Por favor selecciona un archivo Excel primero.', background: '#15332b', color: '#fff' });
-                return;
+                Swal.fire({ icon: 'warning', title: 'Falta Archivo', text: 'Selecciona un archivo Excel.', background: '#15332b', color: '#fff' }); return;
             }
-
             const file = fileInput.files[0];
             const reader = new FileReader();
-
-            Swal.fire({
-                title: 'Leyendo Excel...',
-                text: 'Mapeando coordenadas y limpiando errores...',
-                background: '#15332b', color: '#fff',
-                allowOutsideClick: false,
-                didOpen: () => { Swal.showLoading() }
-            });
+            Swal.fire({ title: 'Leyendo...', text: 'Tradujendo formato y armando paquete...', background: '#15332b', color: '#fff', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
 
             reader.onload = function(e) {
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, {type: 'array'});
-                
                 const sheetNombres = workbook.SheetNames;
+                
+                // Mantiene compatibilidad con el formato de 2 hojas de ASG
                 const nombreHojaOverall = sheetNombres.find(n => n.includes("Overall"));
                 const nombreHojaFuentes = sheetNombres.find(n => n.includes("Fuentes"));
 
                 if (!nombreHojaOverall || !nombreHojaFuentes) {
-                    Swal.fire({ icon: 'error', title: 'Error de Formato', text: 'El Excel debe contener una pestaña con "Overall" en el nombre y otra con "Fuentes".', background: '#15332b', color: '#fff' });
-                    return;
+                    Swal.fire({ icon: 'error', title: 'Error', text: 'Faltan las pestañas Overall o Fuentes.', background: '#15332b', color: '#fff' }); return;
                 }
 
                 const hojaOverall = XLSX.utils.sheet_to_json(workbook.Sheets[nombreHojaOverall], {header: 1, defval: ""});
@@ -181,21 +165,20 @@
                     if (!valor) return "Pendiente";
                     let v = valor.toString().toLowerCase().trim();
                     if (v === "completo" || v === "entregado") return "Entregado";
-                    if (v.includes("no aplica") || v === "n/a" || v.includes("ref")) return "No Aplica";
-                    return "Pendiente"; // Atrapa "Sin Carga", "Incompleto", "Falta Recibo"
+                    if (v.includes("no aplica") || v === "n/a" || v.includes("ref")) return "No aplica";
+                    return "Pendiente";
                 }
 
-                // 1. EXTRAER AGUA (PESTAÑA FUENTES)
+                // 1. LEER AGUA (HOJA FUENTES)
                 let datosAgua = {};
                 let headerAguaIdx = hojaFuentes.findIndex(fila => fila[0] && fila[0].toString().toLowerCase().trim() === "clave");
-                
                 if (headerAguaIdx !== -1) {
-                    let headersAgua = hojaFuentes[headerAguaIdx].map(h => h.toString().toLowerCase().trim());
-                    let colCiud = headersAgua.findIndex(h => h.includes("agua ciud"));
-                    let colPipa = headersAgua.findIndex(h => h.includes("agua de pi"));
-                    let colTrat = headersAgua.findIndex(h => h.includes("agua trat"));
-                    let colPozo = headersAgua.findIndex(h => h.includes("agua de po"));
-                    let colParq = headersAgua.findIndex(h => h.includes("agua parque"));
+                    let hAgua = hojaFuentes[headerAguaIdx].map(h => h.toString().toLowerCase().trim());
+                    let colCiud = hAgua.findIndex(h => h.includes("agua ciud"));
+                    let colPipa = hAgua.findIndex(h => h.includes("agua de pi"));
+                    let colTrat = hAgua.findIndex(h => h.includes("agua trat"));
+                    let colPozo = hAgua.findIndex(h => h.includes("agua de po"));
+                    let colParq = hAgua.findIndex(h => h.includes("agua parque"));
 
                     for (let i = headerAguaIdx + 1; i < hojaFuentes.length; i++) {
                         let fila = hojaFuentes[i];
@@ -212,120 +195,83 @@
                     }
                 }
 
-                // 2. EXTRAER ENERGÉTICOS Y FUSIONAR (PESTAÑA OVERALL)
+                // 2. LEER ENERGÍA Y ORDENAR AUTOMÁTICAMENTE
                 let actualizaciones = [];
                 let headerOverallIdx = hojaOverall.findIndex(fila => fila[0] && fila[0].toString().toLowerCase().trim() === "clave");
-                
                 if (headerOverallIdx !== -1) {
-                    let headersOverall = hojaOverall[headerOverallIdx].map(h => h.toString().toLowerCase().trim());
+                    let hOv = hojaOverall[headerOverallIdx].map(h => h.toString().toLowerCase().trim());
                     
-                    let colElec = headersOverall.findIndex(h => h.includes("electricidad") || h.includes("luz"));
-                    let colGasNat = headersOverall.findIndex(h => h.includes("gas natural"));
-                    let colGasLP = headersOverall.findIndex(h => h.includes("gas lp"));
-                    let colGasol = headersOverall.findIndex(h => h.includes("gasolina"));
-                    let colDiesel = headersOverall.findIndex(h => h.includes("diesel") || h.includes("diésel"));
-                    
-                    // Salvavidas por si cambian el nombre de los residuos
-                    let colResPort = headersOverall.findIndex(h => h.includes("residuos port") || h === "residuos");
-                    let colResRec = headersOverall.findIndex(h => h.includes("residuos recibos") || h === "residuos");
+                    let colElec = hOv.findIndex(h => h.includes("electricidad") || h.includes("luz"));
+                    let colGasNat = hOv.findIndex(h => h.includes("gas natural"));
+                    let colGasLP = hOv.findIndex(h => h.includes("gas lp"));
+                    let colGasol = hOv.findIndex(h => h.includes("gasolina"));
+                    let colDiesel = hOv.findIndex(h => h.includes("diesel") || h.includes("diésel"));
+                    let colResPort = hOv.findIndex(h => h.includes("residuos port") || h.includes("portal"));
+                    let colResRec = hOv.findIndex(h => h.includes("residuos recibos") || h.includes("drive"));
 
                     for (let i = headerOverallIdx + 1; i < hojaOverall.length; i++) {
                         let fila = hojaOverall[i];
                         let incode = fila[0] ? fila[0].toString().trim() : "";
-                        
                         if (!incode || incode.toLowerCase().includes("grupo") || incode.toLowerCase().includes("servicio")) continue;
 
-                        let agua = datosAgua[incode] || {
-                            aguaCiudad: "Pendiente", aguaPipa: "Pendiente", aguaTratada: "Pendiente", aguaPozo: "Pendiente", aguaParqueInd: "Pendiente"
-                        };
+                        let agua = datosAgua[incode] || { aguaCiudad: "Pendiente", aguaPipa: "Pendiente", aguaTratada: "Pendiente", aguaPozo: "Pendiente", aguaParqueInd: "Pendiente" };
 
-                        // 3. ARMADO MILIMÉTRICO (Basado en el orden de tu Google Sheets H->S)
+                        // ORDEN ABSOLUTO COMO ESTÁ EN TU GOOGLE SHEETS HOY (H->S)
+                        // ¡El código adapta el desorden de ASG al orden perfecto de tu Sheet!
                         let estatus12 = [
-                            colResRec !== -1 ? traducirEstatus(fila[colResRec]) : "Pendiente",    // H: Residuos Drive
-                            colResPort !== -1 ? traducirEstatus(fila[colResPort]) : "Pendiente",  // I: Residuos ESG
-                            colGasLP !== -1 ? traducirEstatus(fila[colGasLP]) : "Pendiente",      // J: Gas LP
-                            colDiesel !== -1 ? traducirEstatus(fila[colDiesel]) : "Pendiente",    // K: Diésel
-                            colGasol !== -1 ? traducirEstatus(fila[colGasol]) : "Pendiente",      // L: Gasolina
-                            agua.aguaCiudad,                                                      // M: Agua ciudad
-                            agua.aguaPipa,                                                        // N: Agua de pipa
-                            agua.aguaPozo,                                                        // O: Agua de pozo
-                            agua.aguaTratada,                                                     // P: Agua tratada
-                            agua.aguaParqueInd,                                                   // Q: Agua parque ind
-                            colElec !== -1 ? traducirEstatus(fila[colElec]) : "Pendiente",        // R: Luz
-                            colGasNat !== -1 ? traducirEstatus(fila[colGasNat]) : "Pendiente"     // S: Gas Natural
+                            colResRec !== -1 ? traducirEstatus(fila[colResRec]) : "Pendiente",    // 0. H: Residuos Drive (Recibos)
+                            colResPort !== -1 ? traducirEstatus(fila[colResPort]) : "Pendiente",  // 1. I: Residuos ESG (Portal)
+                            colGasLP !== -1 ? traducirEstatus(fila[colGasLP]) : "Pendiente",      // 2. J: Gas LP
+                            colDiesel !== -1 ? traducirEstatus(fila[colDiesel]) : "Pendiente",    // 3. K: Diésel
+                            colGasol !== -1 ? traducirEstatus(fila[colGasol]) : "Pendiente",      // 4. L: Gasolina
+                            agua.aguaCiudad,                                                      // 5. M: Agua ciudad
+                            agua.aguaPipa,                                                        // 6. N: Agua de Pipa
+                            agua.aguaPozo,                                                        // 7. O: Agua de Pozo
+                            agua.aguaTratada,                                                     // 8. P: Agua Tratada
+                            agua.aguaParqueInd,                                                   // 9. Q: Agua Parque Ind
+                            colElec !== -1 ? traducirEstatus(fila[colElec]) : "Pendiente",        // 10. R: Luz
+                            colGasNat !== -1 ? traducirEstatus(fila[colGasNat]) : "Pendiente"     // 11. S: Gas Natural
                         ];
-
                         actualizaciones.push({ incode: incode, estatus: estatus12 });
                     }
                 }
-
                 enviarActualizacionesMasivas(actualizaciones);
             };
             reader.readAsArrayBuffer(file);
         }
 
         async function enviarActualizacionesMasivas(hotelesProcesados) {
-            let actualizados = 0;
-            let errores = 0;
-
+            let actualizados = 0; let errores = 0;
             for (let i = 0; i < hotelesProcesados.length; i++) {
                 let hotel = hotelesProcesados[i];
-                let existe = datosGlobales.find(h => h.incode === hotel.incode);
-                if (!existe) continue;
-
-                // YA NO HAY ESCUDO PROTECTOR. 
-                // Se envía el arreglo puro y crudo desde el Excel para matar a los "Datos Zombie".
-                let nuevosEstatusPuros = hotel.estatus;
-
+                if (!datosGlobales.find(h => h.incode === hotel.incode)) continue;
                 try {
-                    Swal.update({ title: `Sincronizando...`, text: `Procesando hotel: ${hotel.incode} (${actualizados + 1}/${hotelesProcesados.length})` });
-                    
-                    let response = await fetch(API_URL, {
-                        method: 'POST',
-                        body: JSON.stringify({ incode: hotel.incode, estatus: nuevosEstatusPuros })
-                    });
+                    Swal.update({ title: `Sincronizando...`, text: `Hotel: ${hotel.incode} (${actualizados + 1}/${hotelesProcesados.length})` });
+                    let response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ incode: hotel.incode, estatus: hotel.estatus }) });
                     let result = await response.json();
-                    if(result.status === "success") actualizados++;
-                    else errores++;
-                } catch (err) {
-                    errores++;
-                }
+                    if(result.status === "success") actualizados++; else errores++;
+                } catch (err) { errores++; }
             }
-
-            Swal.fire({
-                icon: errores === 0 ? 'success' : 'warning',
-                title: 'Proceso Terminado',
-                text: `Se actualizaron y corrigieron ${actualizados} hoteles.`,
-                background: '#15332b', color: '#fff'
-            }).then(() => {
-                document.getElementById('dashboard').style.display = 'none';
-                document.getElementById('panelRubros').style.display = 'none';
-                document.getElementById('loader').style.display = 'block';
-                cargarDatosDesdeAPI();
-                document.getElementById('excelFile').value = ""; 
+            Swal.fire({ icon: errores === 0 ? 'success' : 'warning', title: 'Completado', text: `Actualizados: ${actualizados}`, background: '#15332b', color: '#fff' }).then(() => {
+                document.getElementById('dashboard').style.display = 'none'; document.getElementById('panelRubros').style.display = 'none';
+                document.getElementById('loader').style.display = 'block'; cargarDatosDesdeAPI(); document.getElementById('excelFile').value = ""; 
             });
         }
 
-        // ==========================================
-        // LÓGICA DE EDICIÓN MANUAL
-        // ==========================================
         function mostrarRubros() {
             const incode = document.getElementById('selectIncode').value;
             if(!incode) return;
-
             const hotel = datosGlobales.find(h => h.incode === incode);
             document.getElementById('nombreHotelLabel').innerText = "Editando Manualmente: " + hotel.nombre;
-            
             const contenedor = document.getElementById('contenedorDropdowns');
             contenedor.innerHTML = "";
 
             encabezadosGlobales.forEach((encabezado, i) => {
                 let estatus = hotel.estatus[i] || 'Pendiente';
-                
                 let claseColor = 'status-pendiente';
                 if(estatus === 'Entregado') claseColor = 'status-entregado';
-                else if(estatus === 'No Aplica') claseColor = 'status-no-aplica';
-
+                else if(estatus === 'No aplica') claseColor = 'status-no-aplica';
+                
                 let tituloLimpio = encabezado.replace('Estatus ', '').replace(' (ESG)', '').replace(' (ASG)', '').replace(' (Drive)', '');
 
                 contenedor.innerHTML += `
@@ -334,58 +280,37 @@
                         <select class="form-select status-select ${claseColor}" id="rubro_${i}" onchange="cambiarColor(this)">
                             <option value="Pendiente" ${estatus === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
                             <option value="Entregado" ${estatus === 'Entregado' ? 'selected' : ''}>Entregado</option>
-                            <option value="No Aplica" ${estatus === 'No Aplica' ? 'selected' : ''}>No Aplica</option>
+                            <option value="No aplica" ${estatus === 'No aplica' ? 'selected' : ''}>No Aplica</option>
                         </select>
                     </div>
                 `;
             });
-
             document.getElementById('panelRubros').style.display = 'block';
         }
 
         function cambiarColor(selectElement) {
             if(selectElement.value === 'Pendiente') selectElement.className = "form-select status-select status-pendiente";
             else if(selectElement.value === 'Entregado') selectElement.className = "form-select status-select status-entregado";
-            else if(selectElement.value === 'No Aplica') selectElement.className = "form-select status-select status-no-aplica";
+            else if(selectElement.value === 'No aplica') selectElement.className = "form-select status-select status-no-aplica";
         }
 
         function guardarEnGoogle() {
             const incode = document.getElementById('selectIncode').value;
             let nuevosEstatus = [];
-            
-            for(let i=0; i<12; i++) {
-                nuevosEstatus.push(document.getElementById('rubro_' + i).value);
-            }
+            for(let i=0; i<12; i++) nuevosEstatus.push(document.getElementById('rubro_' + i).value);
 
-            Swal.fire({
-                title: 'Sincronizando...',
-                text: 'Guardando datos en la matriz principal de Google Sheets...',
-                background: '#15332b', color: '#fff',
-                allowOutsideClick: false,
-                didOpen: () => { Swal.showLoading() }
-            });
+            Swal.fire({ title: 'Guardando...', background: '#15332b', color: '#fff', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
 
-            fetch(API_URL, {
-                method: 'POST',
-                body: JSON.stringify({ incode: incode, estatus: nuevosEstatus })
-            })
+            fetch(API_URL, { method: 'POST', body: JSON.stringify({ incode: incode, estatus: nuevosEstatus }) })
             .then(response => response.json())
             .then(result => {
                 if(result.status === "success") {
-                    Swal.fire({ icon: 'success', title: '¡Guardado!', text: 'El estatus de ' + incode + ' fue actualizado con éxito.', background: '#15332b', color: '#fff' })
-                    .then(() => {
-                        document.getElementById('dashboard').style.display = 'none';
-                        document.getElementById('panelRubros').style.display = 'none';
-                        document.getElementById('loader').style.display = 'block';
-                        cargarDatosDesdeAPI();
+                    Swal.fire({ icon: 'success', title: '¡Guardado!', background: '#15332b', color: '#fff' }).then(() => {
+                        document.getElementById('dashboard').style.display = 'none'; document.getElementById('panelRubros').style.display = 'none';
+                        document.getElementById('loader').style.display = 'block'; cargarDatosDesdeAPI();
                     });
-                } else {
-                    Swal.fire({ icon: 'error', title: 'Error', text: result.message, background: '#15332b', color: '#fff' });
-                }
-            })
-            .catch(error => {
-                Swal.fire({ icon: 'error', title: 'Error', text: 'Falló la conexión al guardar.', background: '#15332b', color: '#fff' });
-            });
+                } else { Swal.fire({ icon: 'error', title: 'Error', text: result.message, background: '#15332b', color: '#fff' }); }
+            }).catch(error => { Swal.fire({ icon: 'error', title: 'Error', background: '#15332b', color: '#fff' }); });
         }
     </script>
 </body>
