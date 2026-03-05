@@ -105,7 +105,6 @@
         function iniciarSesion() {
             const u = document.getElementById('user').value;
             const p = document.getElementById('pass').value;
-
             if(u === "ESG" && p === "2250") {
                 document.getElementById('loginScreen').style.display = 'none';
                 document.getElementById('loader').style.display = 'block';
@@ -136,6 +135,23 @@
                 });
         }
 
+        function traducirEstatus(valor, esResiduo) {
+            if (!valor) return "Pendiente"; 
+            let v = valor.toString().toLowerCase().trim();
+            
+            // 1. COMPLETOS -> Entregado
+            if (v === "completo" || v === "entregado") return "Entregado";
+            
+            // 2. RESIDUOS -> Jamás aplica "No aplica"
+            if (esResiduo && (v.includes("no aplica") || v === "n/a")) return "Pendiente";
+            
+            // 3. NO APLICA -> Si no es residuo, se respeta
+            if (v.includes("no aplica") || v === "n/a" || v.includes("ref")) return "No aplica";
+            
+            // 4. TODO LO DEMÁS -> Pendiente (Incompleto, Sin Carga, Pendiente, etc.)
+            return "Pendiente";
+        }
+
         function procesarExcel() {
             const fileInput = document.getElementById('excelFile');
             if (!fileInput.files.length) {
@@ -150,27 +166,17 @@
                 const workbook = XLSX.read(data, {type: 'array'});
                 const sheetNombres = workbook.SheetNames;
                 
-                // BUSCADOR RÁPIDO: Ignora el mes, solo busca la palabra clave.
                 const nombreHojaOverall = sheetNombres.find(n => n.toLowerCase().includes("overall"));
                 const nombreHojaFuentes = sheetNombres.find(n => n.toLowerCase().includes("fuentes"));
 
                 if (!nombreHojaOverall || !nombreHojaFuentes) {
-                    Swal.fire({ icon: 'error', title: 'Pestañas no encontradas', text: 'El Excel debe contener una pestaña que incluya "Overall" en su nombre y otra que incluya "Fuentes".', background: '#15332b', color: '#fff' }); return;
+                    Swal.fire({ icon: 'error', title: 'Pestañas no encontradas', text: 'Faltan las pestañas clave.', background: '#15332b', color: '#fff' }); return;
                 }
 
                 const hojaOverall = XLSX.utils.sheet_to_json(workbook.Sheets[nombreHojaOverall], {header: 1, defval: ""});
                 const hojaFuentes = XLSX.utils.sheet_to_json(workbook.Sheets[nombreHojaFuentes], {header: 1, defval: ""});
 
-                function traducirEstatus(valor, esResiduo) {
-                    if (!valor) return "Pendiente"; 
-                    let v = valor.toString().toLowerCase().trim();
-                    if (v === "completo" || v === "entregado") return "Entregado";
-                    if (esResiduo && (v.includes("no aplica") || v === "n/a")) return "Pendiente";
-                    if (v.includes("no aplica") || v === "n/a" || v.includes("ref")) return "No aplica";
-                    return "Pendiente"; // Esto atrapa Incompleto, Sin Carga, etc.
-                }
-
-                // 1. LEER AGUA (HOJA FUENTES)
+                // 1. LEER AGUA
                 let datosAgua = {};
                 let headerAguaIdx = hojaFuentes.findIndex(fila => fila[0] && fila[0].toString().toLowerCase().trim() === "clave");
                 if (headerAguaIdx !== -1) {
@@ -185,7 +191,6 @@
                         let fila = hojaFuentes[i];
                         let incode = fila[0] ? fila[0].toString().trim() : "";
                         if (!incode || incode.toLowerCase().includes("grupo") || incode.toLowerCase().includes("servicio")) continue;
-                        
                         datosAgua[incode] = {
                             aguaCiudad: colCiud !== -1 ? traducirEstatus(fila[colCiud], false) : "Pendiente",
                             aguaPipa: colPipa !== -1 ? traducirEstatus(fila[colPipa], false) : "Pendiente",
@@ -196,12 +201,11 @@
                     }
                 }
 
-                // 2. LEER ENERGÍA Y ORDENAR AUTOMÁTICAMENTE
+                // 2. LEER ENERGÍA
                 let actualizaciones = [];
                 let headerOverallIdx = hojaOverall.findIndex(fila => fila[0] && fila[0].toString().toLowerCase().trim() === "clave");
                 if (headerOverallIdx !== -1) {
                     let hOv = hojaOverall[headerOverallIdx].map(h => h.toString().toLowerCase().trim());
-                    
                     let colElec = hOv.findIndex(h => h.includes("electricidad") || h.includes("luz"));
                     let colGasNat = hOv.findIndex(h => h.includes("gas natural"));
                     let colGasLP = hOv.findIndex(h => h.includes("gas lp"));
@@ -211,6 +215,7 @@
                     let colResRec = hOv.findIndex(h => h.includes("residuos recibos") || h.includes("drive"));
 
                     for (let i = headerOverallIdx + 1; i < hojaOverall.length; i++) {
+                        if (i === 11 || i === 28 || i === 41) continue; // Ignorar filas 12, 29, 42
                         let fila = hojaOverall[i];
                         let incode = fila[0] ? fila[0].toString().trim() : "";
                         if (!incode || incode.toLowerCase().includes("grupo") || incode.toLowerCase().includes("servicio")) continue;
@@ -218,18 +223,14 @@
                         let agua = datosAgua[incode] || { aguaCiudad: "Pendiente", aguaPipa: "Pendiente", aguaTratada: "Pendiente", aguaPozo: "Pendiente", aguaParqueInd: "Pendiente" };
 
                         let estatus12 = [
-                            colElec !== -1 ? traducirEstatus(fila[colElec], false) : "Pendiente",        // 0. H: Electricidad
-                            colGasNat !== -1 ? traducirEstatus(fila[colGasNat], false) : "Pendiente",    // 1. I: Gas Natural
-                            colGasLP !== -1 ? traducirEstatus(fila[colGasLP], false) : "Pendiente",      // 2. J: Gas LP
-                            colGasol !== -1 ? traducirEstatus(fila[colGasol], false) : "Pendiente",      // 3. K: Gasolina
-                            colDiesel !== -1 ? traducirEstatus(fila[colDiesel], false) : "Pendiente",    // 4. L: Diesel
-                            colResPort !== -1 ? traducirEstatus(fila[colResPort], true) : "Pendiente",   // 5. M: Residuos Portal
-                            colResRec !== -1 ? traducirEstatus(fila[colResRec], true) : "Pendiente",     // 6. N: Residuos Recibos
-                            agua.aguaCiudad,                                                             // 7. O: Agua ciudad
-                            agua.aguaPipa,                                                               // 8. P: Agua de Pipa
-                            agua.aguaTratada,                                                            // 9. Q: Agua Tratada
-                            agua.aguaPozo,                                                               // 10. R: Agua de Pozo
-                            agua.aguaParqueInd                                                           // 11. S: Agua Parque Ind
+                            colElec !== -1 ? traducirEstatus(fila[colElec], false) : "Pendiente",
+                            colGasNat !== -1 ? traducirEstatus(fila[colGasNat], false) : "Pendiente",
+                            colGasLP !== -1 ? traducirEstatus(fila[colGasLP], false) : "Pendiente",
+                            colGasol !== -1 ? traducirEstatus(fila[colGasol], false) : "Pendiente",
+                            colDiesel !== -1 ? traducirEstatus(fila[colDiesel], false) : "Pendiente",
+                            colResPort !== -1 ? traducirEstatus(fila[colResPort], true) : "Pendiente",
+                            colResRec !== -1 ? traducirEstatus(fila[colResRec], true) : "Pendiente",
+                            agua.aguaCiudad, agua.aguaPipa, agua.aguaTratada, agua.aguaPozo, agua.aguaParqueInd
                         ];
                         actualizaciones.push({ incode: incode, estatus: estatus12 });
                     }
@@ -264,25 +265,18 @@
             document.getElementById('nombreHotelLabel').innerText = "Editando Manualmente: " + hotel.nombre;
             const contenedor = document.getElementById('contenedorDropdowns');
             contenedor.innerHTML = "";
-
             encabezadosGlobales.forEach((encabezado, i) => {
                 let estatus = hotel.estatus[i] || 'Pendiente';
-                let claseColor = 'status-pendiente';
-                if(estatus === 'Entregado') claseColor = 'status-entregado';
-                else if(estatus === 'No aplica') claseColor = 'status-no-aplica';
-                
-                let tituloLimpio = encabezado.replace('Estatus ', '').replace(' (ESG)', '').replace(' (ASG)', '').replace(' (Drive)', '');
-
+                let claseColor = (estatus === 'Entregado') ? 'status-entregado' : (estatus === 'No aplica' ? 'status-no-aplica' : 'status-pendiente');
                 contenedor.innerHTML += `
                     <div class="col-md-4 mb-4">
-                        <label class="form-label small text-uppercase" style="color:#a8b8c8;">${tituloLimpio}</label>
+                        <label class="form-label small text-uppercase" style="color:#a8b8c8;">${encabezado.replace('Estatus ', '')}</label>
                         <select class="form-select status-select ${claseColor}" id="rubro_${i}" onchange="cambiarColor(this)">
                             <option value="Pendiente" ${estatus === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
                             <option value="Entregado" ${estatus === 'Entregado' ? 'selected' : ''}>Entregado</option>
                             <option value="No aplica" ${estatus === 'No aplica' ? 'selected' : ''}>No Aplica</option>
                         </select>
-                    </div>
-                `;
+                    </div>`;
             });
             document.getElementById('panelRubros').style.display = 'block';
         }
@@ -297,9 +291,7 @@
             const incode = document.getElementById('selectIncode').value;
             let nuevosEstatus = [];
             for(let i=0; i<12; i++) nuevosEstatus.push(document.getElementById('rubro_' + i).value);
-
             Swal.fire({ title: 'Guardando...', background: '#15332b', color: '#fff', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
-
             fetch(API_URL, { method: 'POST', body: JSON.stringify({ incode: incode, estatus: nuevosEstatus }) })
             .then(response => response.json())
             .then(result => {
