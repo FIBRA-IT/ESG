@@ -76,7 +76,7 @@
             <button class="btn btn-fibra mt-0" style="width: auto; padding: 10px 30px;" onclick="procesarExcel()">
                 <i class="fas fa-sync-alt"></i> Extraer Datos ASG
             </button>
-            <p class="small text-muted mt-3 mb-0"><i class="fas fa-info-circle"></i> El sistema buscará las pestañas "Overall" y "Fuentes", fusionará los datos y los ordenará según la base de Google.</p>
+            <p class="small text-muted mt-3 mb-0"><i class="fas fa-info-circle"></i> El sistema buscará las pestañas "Overall" y "Fuentes", y usará coordenadas exactas para acomodar los datos de Luz, Agua y Residuos.</p>
         </div>
 
         <div class="card-custom">
@@ -99,7 +99,6 @@
     </div>
 
     <script>
-        // LA MISMA URL DE TU API
         const API_URL = "https://script.google.com/macros/s/AKfycbwu4BMuNm42AZvlw6mg3RtNOXWaFlDr8abO_-IXl7PBMV4eYZTRo8EI22hac7wKyp2tEw/exec"; 
         let datosGlobales = [];
         let encabezadosGlobales = [];
@@ -142,7 +141,7 @@
         }
 
         // ==========================================
-        // LÓGICA DE CARGA MASIVA EXCEL DOBLE PESTAÑA
+        // LÓGICA DE CARGA MASIVA CON COORDENADAS EXACTAS
         // ==========================================
         function procesarExcel() {
             const fileInput = document.getElementById('excelFile');
@@ -156,7 +155,7 @@
 
             Swal.fire({
                 title: 'Leyendo Excel...',
-                text: 'Extrayendo datos de Overall y Fuentes...',
+                text: 'Mapeando coordenadas de columnas...',
                 background: '#15332b', color: '#fff',
                 allowOutsideClick: false,
                 didOpen: () => { Swal.showLoading() }
@@ -175,70 +174,65 @@
                     return;
                 }
 
-                const hojaOverall = XLSX.utils.sheet_to_json(workbook.Sheets[nombreHojaOverall], {header: 1});
-                const hojaFuentes = XLSX.utils.sheet_to_json(workbook.Sheets[nombreHojaFuentes], {header: 1});
+                // defval: "" obliga al sistema a respetar las celdas vacías para no perder el orden de las columnas
+                const hojaOverall = XLSX.utils.sheet_to_json(workbook.Sheets[nombreHojaOverall], {header: 1, defval: ""});
+                const hojaFuentes = XLSX.utils.sheet_to_json(workbook.Sheets[nombreHojaFuentes], {header: 1, defval: ""});
 
                 function traducirEstatus(valor) {
                     if (!valor) return "Pendiente";
                     let v = valor.toString().toLowerCase().trim();
-                    if (v === "completo") return "Entregado";
-                    if (v === "incompleto" || v === "sin carga" || v === "pendiente") return "Pendiente";
-                    if (v === "no aplica" || v === "n/a" || v === "#¡ref!") return "No Aplica";
+                    if (v === "completo" || v === "entregado") return "Entregado";
+                    if (v.includes("no aplica") || v === "n/a" || v.includes("ref")) return "No Aplica";
                     return "Pendiente";
                 }
 
-                // Extraer AGUA (Fuentes)
+                // 1. EXTRAER AGUA (PESTAÑA FUENTES)
                 let datosAgua = {};
-                for (let i = 8; i <= 40; i++) {
+                // Empezamos a leer desde la fila índice 8 (que es la fila 9 en tu Excel)
+                for (let i = 8; i < hojaFuentes.length; i++) {
                     let fila = hojaFuentes[i];
                     if (!fila || !fila[0]) continue;
                     let incode = fila[0].toString().trim();
+                    
+                    // Ignoramos basura
+                    if (incode.toLowerCase().includes("grupo") || incode.toLowerCase().includes("servicio") || incode.toLowerCase() === "clave") continue;
+
                     datosAgua[incode] = {
-                        aguaCiudad: traducirEstatus(fila[2]),
-                        aguaPipa: traducirEstatus(fila[3]),
-                        aguaTratada: traducirEstatus(fila[4]),
-                        aguaPozo: traducirEstatus(fila[5]),
-                        aguaParqueInd: traducirEstatus(fila[6])
+                        aguaCiudad: traducirEstatus(fila[2]),    // Columna C (índice 2)
+                        aguaPipa: traducirEstatus(fila[3]),      // Columna D (índice 3)
+                        aguaTratada: traducirEstatus(fila[4]),   // Columna E (índice 4)
+                        aguaPozo: traducirEstatus(fila[5]),      // Columna F (índice 5)
+                        aguaParqueInd: traducirEstatus(fila[6])  // Columna G (índice 6)
                     };
                 }
 
-                // Extraer ENERGÉTICOS y FUSIONAR (Overall)
+                // 2. EXTRAER ENERGÉTICOS Y FUSIONAR (PESTAÑA OVERALL)
                 let actualizaciones = [];
-                for (let i = 8; i <= 43; i++) { 
-                    if (i === 11 || i === 28 || i === 41) continue; // Ignorar Grupos
-                    
+                for (let i = 8; i < hojaOverall.length; i++) {
                     let fila = hojaOverall[i];
                     if (!fila || !fila[0]) continue;
-                    
                     let incode = fila[0].toString().trim();
-                    if (incode.toLowerCase().includes("grupo")) continue;
-
-                    let electricidad = traducirEstatus(fila[2]);
-                    let gasNatural = traducirEstatus(fila[3]);
-                    let gasLP = traducirEstatus(fila[4]);
-                    let gasolina = traducirEstatus(fila[5]);
-                    let diesel = traducirEstatus(fila[6]);
-                    let residuosASG = traducirEstatus(fila[7]);
-                    let residuosDrive = traducirEstatus(fila[8]);
+                    
+                    if (incode.toLowerCase().includes("grupo") || incode.toLowerCase().includes("servicio") || incode.toLowerCase() === "clave") continue;
 
                     let agua = datosAgua[incode] || {
                         aguaCiudad: "Pendiente", aguaPipa: "Pendiente", aguaTratada: "Pendiente", aguaPozo: "Pendiente", aguaParqueInd: "Pendiente"
                     };
 
-                    // !!! ORDEN EXACTO MILIMÉTRICO SEGÚN TU GOOGLE SHEETS !!!
+                    // 3. ARMADO MILIMÉTRICO DEL PAQUETE (Basado en tu imagen de Google Sheets H->S)
                     let estatus12 = [
-                        residuosDrive,        // Col H: Residuos Drive (Recibos)
-                        residuosASG,          // Col I: Residuos ESG (Port)
-                        gasLP,                // Col J: Gas LP
-                        diesel,               // Col K: Diesel
-                        gasolina,             // Col L: Gasolina
-                        agua.aguaCiudad,      // Col M: Agua ciudad
-                        agua.aguaPipa,        // Col N: Agua de pipa
-                        agua.aguaPozo,        // Col O: Agua de pozo
-                        agua.aguaTratada,     // Col P: Agua tratada
-                        agua.aguaParqueInd,   // Col Q: Agua parque ind
-                        electricidad,         // Col R: Luz / Electricidad
-                        gasNatural            // Col S: Gas Natural
+                        traducirEstatus(fila[8]), // 1. Col H Sheets: Residuos Drive = Excel Col I (Recibos)
+                        traducirEstatus(fila[7]), // 2. Col I Sheets: Residuos ESG = Excel Col H (Portal)
+                        traducirEstatus(fila[4]), // 3. Col J Sheets: Gas LP = Excel Col E
+                        traducirEstatus(fila[6]), // 4. Col K Sheets: Diésel = Excel Col G
+                        traducirEstatus(fila[5]), // 5. Col L Sheets: Gasolina = Excel Col F
+                        agua.aguaCiudad,          // 6. Col M Sheets: Agua ciudad = Fuentes Col C
+                        agua.aguaPipa,            // 7. Col N Sheets: Agua de pipa = Fuentes Col D
+                        agua.aguaPozo,            // 8. Col O Sheets: Agua de pozo = Fuentes Col F (Aquí arreglamos el cruce)
+                        agua.aguaTratada,         // 9. Col P Sheets: Agua tratada = Fuentes Col E (Aquí arreglamos el cruce)
+                        agua.aguaParqueInd,       // 10. Col Q Sheets: Agua parque industrial = Fuentes Col G
+                        traducirEstatus(fila[2]), // 11. Col R Sheets: Luz (ESG) = Excel Col C (Electricidad)
+                        traducirEstatus(fila[3])  // 12. Col S Sheets: Gas Natural (ESG) = Excel Col D
                     ];
 
                     actualizaciones.push({ incode: incode, estatus: estatus12 });
@@ -297,6 +291,9 @@
             });
         }
 
+        // ==========================================
+        // LÓGICA DE EDICIÓN MANUAL
+        // ==========================================
         function mostrarRubros() {
             const incode = document.getElementById('selectIncode').value;
             if(!incode) return;
