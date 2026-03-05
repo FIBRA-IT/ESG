@@ -69,14 +69,14 @@
         </div>
 
         <div class="card-custom">
-            <h5 style="color: #c4d600; margin-bottom: 20px;"><i class="fas fa-file-excel"></i> Carga Masiva Inteligente (Doble Pestaña)</h5>
+            <h5 style="color: #c4d600; margin-bottom: 20px;"><i class="fas fa-file-excel"></i> Carga Masiva Inteligente (Sobrescritura Total)</h5>
             <div class="file-upload-wrapper">
                 <input type="file" id="excelFile" accept=".xlsx, .xls">
             </div>
             <button class="btn btn-fibra mt-0" style="width: auto; padding: 10px 30px;" onclick="procesarExcel()">
-                <i class="fas fa-sync-alt"></i> Extraer Datos ASG
+                <i class="fas fa-sync-alt"></i> Extraer y Sobrescribir Datos
             </button>
-            <p class="small text-muted mt-3 mb-0"><i class="fas fa-info-circle"></i> El sistema buscará las pestañas "Overall" y "Fuentes", y usará coordenadas exactas para acomodar los datos de Luz, Agua y Residuos.</p>
+            <p class="small text-muted mt-3 mb-0"><i class="fas fa-info-circle"></i> El sistema leerá el Excel y forzará la actualización de todos los datos, limpiando errores previos.</p>
         </div>
 
         <div class="card-custom">
@@ -141,7 +141,7 @@
         }
 
         // ==========================================
-        // LÓGICA DE CARGA MASIVA CON COORDENADAS EXACTAS
+        // LÓGICA DE CARGA MASIVA SIN MEMORIA (SOBRESCRITURA TOTAL)
         // ==========================================
         function procesarExcel() {
             const fileInput = document.getElementById('excelFile');
@@ -155,7 +155,7 @@
 
             Swal.fire({
                 title: 'Leyendo Excel...',
-                text: 'Mapeando coordenadas de columnas...',
+                text: 'Mapeando coordenadas y limpiando errores...',
                 background: '#15332b', color: '#fff',
                 allowOutsideClick: false,
                 didOpen: () => { Swal.showLoading() }
@@ -174,7 +174,6 @@
                     return;
                 }
 
-                // defval: "" obliga al sistema a respetar las celdas vacías para no perder el orden de las columnas
                 const hojaOverall = XLSX.utils.sheet_to_json(workbook.Sheets[nombreHojaOverall], {header: 1, defval: ""});
                 const hojaFuentes = XLSX.utils.sheet_to_json(workbook.Sheets[nombreHojaFuentes], {header: 1, defval: ""});
 
@@ -183,59 +182,81 @@
                     let v = valor.toString().toLowerCase().trim();
                     if (v === "completo" || v === "entregado") return "Entregado";
                     if (v.includes("no aplica") || v === "n/a" || v.includes("ref")) return "No Aplica";
-                    return "Pendiente";
+                    return "Pendiente"; // Atrapa "Sin Carga", "Incompleto", "Falta Recibo"
                 }
 
                 // 1. EXTRAER AGUA (PESTAÑA FUENTES)
                 let datosAgua = {};
-                // Empezamos a leer desde la fila índice 8 (que es la fila 9 en tu Excel)
-                for (let i = 8; i < hojaFuentes.length; i++) {
-                    let fila = hojaFuentes[i];
-                    if (!fila || !fila[0]) continue;
-                    let incode = fila[0].toString().trim();
-                    
-                    // Ignoramos basura
-                    if (incode.toLowerCase().includes("grupo") || incode.toLowerCase().includes("servicio") || incode.toLowerCase() === "clave") continue;
+                let headerAguaIdx = hojaFuentes.findIndex(fila => fila[0] && fila[0].toString().toLowerCase().trim() === "clave");
+                
+                if (headerAguaIdx !== -1) {
+                    let headersAgua = hojaFuentes[headerAguaIdx].map(h => h.toString().toLowerCase().trim());
+                    let colCiud = headersAgua.findIndex(h => h.includes("agua ciud"));
+                    let colPipa = headersAgua.findIndex(h => h.includes("agua de pi"));
+                    let colTrat = headersAgua.findIndex(h => h.includes("agua trat"));
+                    let colPozo = headersAgua.findIndex(h => h.includes("agua de po"));
+                    let colParq = headersAgua.findIndex(h => h.includes("agua parque"));
 
-                    datosAgua[incode] = {
-                        aguaCiudad: traducirEstatus(fila[2]),    // Columna C (índice 2)
-                        aguaPipa: traducirEstatus(fila[3]),      // Columna D (índice 3)
-                        aguaTratada: traducirEstatus(fila[4]),   // Columna E (índice 4)
-                        aguaPozo: traducirEstatus(fila[5]),      // Columna F (índice 5)
-                        aguaParqueInd: traducirEstatus(fila[6])  // Columna G (índice 6)
-                    };
+                    for (let i = headerAguaIdx + 1; i < hojaFuentes.length; i++) {
+                        let fila = hojaFuentes[i];
+                        let incode = fila[0] ? fila[0].toString().trim() : "";
+                        if (!incode || incode.toLowerCase().includes("grupo") || incode.toLowerCase().includes("servicio")) continue;
+                        
+                        datosAgua[incode] = {
+                            aguaCiudad: colCiud !== -1 ? traducirEstatus(fila[colCiud]) : "Pendiente",
+                            aguaPipa: colPipa !== -1 ? traducirEstatus(fila[colPipa]) : "Pendiente",
+                            aguaTratada: colTrat !== -1 ? traducirEstatus(fila[colTrat]) : "Pendiente",
+                            aguaPozo: colPozo !== -1 ? traducirEstatus(fila[colPozo]) : "Pendiente",
+                            aguaParqueInd: colParq !== -1 ? traducirEstatus(fila[colParq]) : "Pendiente"
+                        };
+                    }
                 }
 
                 // 2. EXTRAER ENERGÉTICOS Y FUSIONAR (PESTAÑA OVERALL)
                 let actualizaciones = [];
-                for (let i = 8; i < hojaOverall.length; i++) {
-                    let fila = hojaOverall[i];
-                    if (!fila || !fila[0]) continue;
-                    let incode = fila[0].toString().trim();
+                let headerOverallIdx = hojaOverall.findIndex(fila => fila[0] && fila[0].toString().toLowerCase().trim() === "clave");
+                
+                if (headerOverallIdx !== -1) {
+                    let headersOverall = hojaOverall[headerOverallIdx].map(h => h.toString().toLowerCase().trim());
                     
-                    if (incode.toLowerCase().includes("grupo") || incode.toLowerCase().includes("servicio") || incode.toLowerCase() === "clave") continue;
+                    let colElec = headersOverall.findIndex(h => h.includes("electricidad") || h.includes("luz"));
+                    let colGasNat = headersOverall.findIndex(h => h.includes("gas natural"));
+                    let colGasLP = headersOverall.findIndex(h => h.includes("gas lp"));
+                    let colGasol = headersOverall.findIndex(h => h.includes("gasolina"));
+                    let colDiesel = headersOverall.findIndex(h => h.includes("diesel") || h.includes("diésel"));
+                    
+                    // Salvavidas por si cambian el nombre de los residuos
+                    let colResPort = headersOverall.findIndex(h => h.includes("residuos port") || h === "residuos");
+                    let colResRec = headersOverall.findIndex(h => h.includes("residuos recibos") || h === "residuos");
 
-                    let agua = datosAgua[incode] || {
-                        aguaCiudad: "Pendiente", aguaPipa: "Pendiente", aguaTratada: "Pendiente", aguaPozo: "Pendiente", aguaParqueInd: "Pendiente"
-                    };
+                    for (let i = headerOverallIdx + 1; i < hojaOverall.length; i++) {
+                        let fila = hojaOverall[i];
+                        let incode = fila[0] ? fila[0].toString().trim() : "";
+                        
+                        if (!incode || incode.toLowerCase().includes("grupo") || incode.toLowerCase().includes("servicio")) continue;
 
-                    // 3. ARMADO MILIMÉTRICO DEL PAQUETE (Basado en tu imagen de Google Sheets H->S)
-                    let estatus12 = [
-                        traducirEstatus(fila[8]), // 1. Col H Sheets: Residuos Drive = Excel Col I (Recibos)
-                        traducirEstatus(fila[7]), // 2. Col I Sheets: Residuos ESG = Excel Col H (Portal)
-                        traducirEstatus(fila[4]), // 3. Col J Sheets: Gas LP = Excel Col E
-                        traducirEstatus(fila[6]), // 4. Col K Sheets: Diésel = Excel Col G
-                        traducirEstatus(fila[5]), // 5. Col L Sheets: Gasolina = Excel Col F
-                        agua.aguaCiudad,          // 6. Col M Sheets: Agua ciudad = Fuentes Col C
-                        agua.aguaPipa,            // 7. Col N Sheets: Agua de pipa = Fuentes Col D
-                        agua.aguaPozo,            // 8. Col O Sheets: Agua de pozo = Fuentes Col F (Aquí arreglamos el cruce)
-                        agua.aguaTratada,         // 9. Col P Sheets: Agua tratada = Fuentes Col E (Aquí arreglamos el cruce)
-                        agua.aguaParqueInd,       // 10. Col Q Sheets: Agua parque industrial = Fuentes Col G
-                        traducirEstatus(fila[2]), // 11. Col R Sheets: Luz (ESG) = Excel Col C (Electricidad)
-                        traducirEstatus(fila[3])  // 12. Col S Sheets: Gas Natural (ESG) = Excel Col D
-                    ];
+                        let agua = datosAgua[incode] || {
+                            aguaCiudad: "Pendiente", aguaPipa: "Pendiente", aguaTratada: "Pendiente", aguaPozo: "Pendiente", aguaParqueInd: "Pendiente"
+                        };
 
-                    actualizaciones.push({ incode: incode, estatus: estatus12 });
+                        // 3. ARMADO MILIMÉTRICO (Basado en el orden de tu Google Sheets H->S)
+                        let estatus12 = [
+                            colResRec !== -1 ? traducirEstatus(fila[colResRec]) : "Pendiente",    // H: Residuos Drive
+                            colResPort !== -1 ? traducirEstatus(fila[colResPort]) : "Pendiente",  // I: Residuos ESG
+                            colGasLP !== -1 ? traducirEstatus(fila[colGasLP]) : "Pendiente",      // J: Gas LP
+                            colDiesel !== -1 ? traducirEstatus(fila[colDiesel]) : "Pendiente",    // K: Diésel
+                            colGasol !== -1 ? traducirEstatus(fila[colGasol]) : "Pendiente",      // L: Gasolina
+                            agua.aguaCiudad,                                                      // M: Agua ciudad
+                            agua.aguaPipa,                                                        // N: Agua de pipa
+                            agua.aguaPozo,                                                        // O: Agua de pozo
+                            agua.aguaTratada,                                                     // P: Agua tratada
+                            agua.aguaParqueInd,                                                   // Q: Agua parque ind
+                            colElec !== -1 ? traducirEstatus(fila[colElec]) : "Pendiente",        // R: Luz
+                            colGasNat !== -1 ? traducirEstatus(fila[colGasNat]) : "Pendiente"     // S: Gas Natural
+                        ];
+
+                        actualizaciones.push({ incode: incode, estatus: estatus12 });
+                    }
                 }
 
                 enviarActualizacionesMasivas(actualizaciones);
@@ -252,22 +273,16 @@
                 let existe = datosGlobales.find(h => h.incode === hotel.incode);
                 if (!existe) continue;
 
-                let nuevosEstatusProtegidos = [];
-                for (let j = 0; j < 12; j++) {
-                    let estatusBaseDatos = existe.estatus[j];
-                    if (estatusBaseDatos === 'No Aplica') {
-                        nuevosEstatusProtegidos.push('No Aplica');
-                    } else {
-                        nuevosEstatusProtegidos.push(hotel.estatus[j]);
-                    }
-                }
+                // YA NO HAY ESCUDO PROTECTOR. 
+                // Se envía el arreglo puro y crudo desde el Excel para matar a los "Datos Zombie".
+                let nuevosEstatusPuros = hotel.estatus;
 
                 try {
                     Swal.update({ title: `Sincronizando...`, text: `Procesando hotel: ${hotel.incode} (${actualizados + 1}/${hotelesProcesados.length})` });
                     
                     let response = await fetch(API_URL, {
                         method: 'POST',
-                        body: JSON.stringify({ incode: hotel.incode, estatus: nuevosEstatusProtegidos })
+                        body: JSON.stringify({ incode: hotel.incode, estatus: nuevosEstatusPuros })
                     });
                     let result = await response.json();
                     if(result.status === "success") actualizados++;
@@ -280,7 +295,7 @@
             Swal.fire({
                 icon: errores === 0 ? 'success' : 'warning',
                 title: 'Proceso Terminado',
-                text: `Se actualizaron ${actualizados} hoteles. ${errores > 0 ? 'Hubo ' + errores + ' errores.' : ''}`,
+                text: `Se actualizaron y corrigieron ${actualizados} hoteles.`,
                 background: '#15332b', color: '#fff'
             }).then(() => {
                 document.getElementById('dashboard').style.display = 'none';
