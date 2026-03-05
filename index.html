@@ -3,48 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ESG INN - Panel de Control</title>
+    <title>ASG INN - Panel de Control</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
-        body {
-            background-color: #0b1f1a; /* Verde oscuro Fibra Inn */
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: #ffffff;
-            min-height: 100vh;
-        }
-        
-        /* ESTILOS DEL LOGIN */
+        body { background-color: #0b1f1a; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #ffffff; min-height: 100vh; }
         .login-container { display: flex; justify-content: center; align-items: center; height: 100vh; }
         .login-card { background-color: #15332b; border-radius: 8px; padding: 40px; width: 100%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border-top: 3px solid #c4d600; }
         .login-logo { text-align: center; margin-bottom: 20px; }
         .login-logo img { width: 100px; border-radius: 8px; }
         .login-title { text-align: center; font-size: 1.2rem; margin-bottom: 30px; font-weight: 600; }
-        
         .form-control { background-color: #0b1f1a; border: 1px solid #2d5a4c; color: white; }
         .form-control:focus { background-color: #0b1f1a; color: white; border-color: #c4d600; box-shadow: 0 0 0 0.25rem rgba(196, 214, 0, 0.25); }
-        
         .btn-fibra { background-color: #c4d600; color: #0b1f1a; font-weight: bold; border: none; width: 100%; padding: 10px; border-radius: 4px; margin-top: 20px; }
         .btn-fibra:hover { background-color: #aaba00; color: #0b1f1a; }
         .input-icon { color: #c4d600; font-size: 0.9rem; margin-bottom: 5px; display: block; }
-
-        /* ESTILOS DEL DASHBOARD */
         #dashboard { display: none; padding-top: 30px; padding-bottom: 50px;}
         .dash-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 1px solid #2d5a4c; padding-bottom: 15px; }
         .card-custom { background-color: #15332b; border-radius: 8px; border-top: 3px solid #c4d600; padding: 25px; margin-bottom: 20px; }
-        
         .status-select { background-color: #0b1f1a; border: 1px solid #2d5a4c; color: white; font-weight: bold; }
         .status-pendiente { color: #ff6b6b !important; }
         .status-entregado { color: #51cf66 !important; }
-        .status-no-aplica { color: #a8b8c8 !important; } /* Nuevo color gris para No Aplica */
-        
+        .status-no-aplica { color: #a8b8c8 !important; }
         #loader { display: none; text-align: center; margin-top: 50px; }
         .spinner-fibra { color: #c4d600; }
-        
-        /* ESTILOS DE CARGA DE ARCHIVO */
         .file-upload-wrapper { border: 2px dashed #2d5a4c; border-radius: 8px; padding: 20px; text-align: center; background-color: #0b1f1a; margin-bottom: 15px; }
         input[type="file"]::file-selector-button { background-color: #2d5a4c; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; margin-right: 15px; }
     </style>
@@ -56,8 +41,7 @@
             <div class="login-logo">
                 <img src="https://media.licdn.com/dms/image/v2/D560BAQHevH5LsJpmXQ/company-logo_200_200/B56Zi.DanDG4AI-/0/1755535223547/fibrainn_logo?e=2147483647&v=beta&t=IYGkfmXcHxEqXIvZ59Fyp20tYrYLykd70Ot_0YBIN1k" alt="Fibra Inn Logo">
             </div>
-            <div class="login-title">Acceso Plataforma ESG</div>
-            
+            <div class="login-title">Acceso Plataforma ASG</div>
             <div class="mb-3">
                 <label class="input-icon"><i class="fas fa-user"></i> Usuario</label>
                 <input type="text" id="user" class="form-control" placeholder="Ej: ESG">
@@ -72,27 +56,27 @@
 
     <div id="loader">
         <div class="spinner-border spinner-fibra" role="status" style="width: 4rem; height: 4rem;"></div>
-        <h4 class="mt-3">Conectando con Servidor ESG...</h4>
+        <h4 class="mt-3">Conectando con Servidor ASG...</h4>
     </div>
 
     <div id="dashboard" class="container">
         <div class="dash-header">
             <div class="d-flex align-items-center">
                 <img src="https://media.licdn.com/dms/image/v2/D560BAQHevH5LsJpmXQ/company-logo_200_200/B56Zi.DanDG4AI-/0/1755535223547/fibrainn_logo?e=2147483647&v=beta&t=IYGkfmXcHxEqXIvZ59Fyp20tYrYLykd70Ot_0YBIN1k" width="50" style="border-radius: 5px; margin-right: 15px;">
-                <h2 class="mb-0">ESG INN <span style="color: #c4d600;">| Panel de Control</span></h2>
+                <h2 class="mb-0">ASG INN <span style="color: #c4d600;">| Panel de Control</span></h2>
             </div>
             <button class="btn btn-outline-light btn-sm" onclick="location.reload()"><i class="fas fa-sign-out-alt"></i> Salir</button>
         </div>
 
         <div class="card-custom">
-            <h5 style="color: #c4d600; margin-bottom: 20px;"><i class="fas fa-file-excel"></i> Carga Masiva Rápida (Excel)</h5>
+            <h5 style="color: #c4d600; margin-bottom: 20px;"><i class="fas fa-file-excel"></i> Carga Masiva Inteligente (Doble Pestaña)</h5>
             <div class="file-upload-wrapper">
                 <input type="file" id="excelFile" accept=".xlsx, .xls">
             </div>
             <button class="btn btn-fibra mt-0" style="width: auto; padding: 10px 30px;" onclick="procesarExcel()">
-                <i class="fas fa-sync-alt"></i> Actualizar Base de Datos con Excel
+                <i class="fas fa-sync-alt"></i> Extraer Datos ASG
             </button>
-            <p class="small text-muted mt-3 mb-0"><i class="fas fa-info-circle"></i> El Excel debe tener la <strong>CLAVE SITIO en la columna A</strong>, <strong>NOMBRE SITIO en la columna B</strong>, y los estatus a partir de la <strong>columna C</strong>.</p>
+            <p class="small text-muted mt-3 mb-0"><i class="fas fa-info-circle"></i> El sistema buscará las pestañas "Overall" y "Fuentes", fusionará los datos y los ordenará según la base de Google.</p>
         </div>
 
         <div class="card-custom">
@@ -115,6 +99,7 @@
     </div>
 
     <script>
+        // LA MISMA URL DE TU API
         const API_URL = "https://script.google.com/macros/s/AKfycbwu4BMuNm42AZvlw6mg3RtNOXWaFlDr8abO_-IXl7PBMV4eYZTRo8EI22hac7wKyp2tEw/exec"; 
         let datosGlobales = [];
         let encabezadosGlobales = [];
@@ -157,7 +142,7 @@
         }
 
         // ==========================================
-        // LÓGICA DE CARGA MASIVA EXCEL CON "MEMORIA NO APLICA"
+        // LÓGICA DE CARGA MASIVA EXCEL DOBLE PESTAÑA
         // ==========================================
         function procesarExcel() {
             const fileInput = document.getElementById('excelFile');
@@ -171,7 +156,7 @@
 
             Swal.fire({
                 title: 'Leyendo Excel...',
-                text: 'Cruzando INCODEs y estatus...',
+                text: 'Extrayendo datos de Overall y Fuentes...',
                 background: '#15332b', color: '#fff',
                 allowOutsideClick: false,
                 didOpen: () => { Swal.showLoading() }
@@ -180,56 +165,115 @@
             reader.onload = function(e) {
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, {type: 'array'});
-                const firstSheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheetName];
-                const json = XLSX.utils.sheet_to_json(worksheet, {header: 1}); 
+                
+                const sheetNombres = workbook.SheetNames;
+                const nombreHojaOverall = sheetNombres.find(n => n.includes("Overall"));
+                const nombreHojaFuentes = sheetNombres.find(n => n.includes("Fuentes"));
 
-                const filasDatos = json.slice(1);
-                enviarActualizacionesMasivas(filasDatos);
+                if (!nombreHojaOverall || !nombreHojaFuentes) {
+                    Swal.fire({ icon: 'error', title: 'Error de Formato', text: 'El Excel debe contener una pestaña con "Overall" en el nombre y otra con "Fuentes".', background: '#15332b', color: '#fff' });
+                    return;
+                }
+
+                const hojaOverall = XLSX.utils.sheet_to_json(workbook.Sheets[nombreHojaOverall], {header: 1});
+                const hojaFuentes = XLSX.utils.sheet_to_json(workbook.Sheets[nombreHojaFuentes], {header: 1});
+
+                function traducirEstatus(valor) {
+                    if (!valor) return "Pendiente";
+                    let v = valor.toString().toLowerCase().trim();
+                    if (v === "completo") return "Entregado";
+                    if (v === "incompleto" || v === "sin carga" || v === "pendiente") return "Pendiente";
+                    if (v === "no aplica" || v === "n/a" || v === "#¡ref!") return "No Aplica";
+                    return "Pendiente";
+                }
+
+                // Extraer AGUA (Fuentes)
+                let datosAgua = {};
+                for (let i = 8; i <= 40; i++) {
+                    let fila = hojaFuentes[i];
+                    if (!fila || !fila[0]) continue;
+                    let incode = fila[0].toString().trim();
+                    datosAgua[incode] = {
+                        aguaCiudad: traducirEstatus(fila[2]),
+                        aguaPipa: traducirEstatus(fila[3]),
+                        aguaTratada: traducirEstatus(fila[4]),
+                        aguaPozo: traducirEstatus(fila[5]),
+                        aguaParqueInd: traducirEstatus(fila[6])
+                    };
+                }
+
+                // Extraer ENERGÉTICOS y FUSIONAR (Overall)
+                let actualizaciones = [];
+                for (let i = 8; i <= 43; i++) { 
+                    if (i === 11 || i === 28 || i === 41) continue; // Ignorar Grupos
+                    
+                    let fila = hojaOverall[i];
+                    if (!fila || !fila[0]) continue;
+                    
+                    let incode = fila[0].toString().trim();
+                    if (incode.toLowerCase().includes("grupo")) continue;
+
+                    let electricidad = traducirEstatus(fila[2]);
+                    let gasNatural = traducirEstatus(fila[3]);
+                    let gasLP = traducirEstatus(fila[4]);
+                    let gasolina = traducirEstatus(fila[5]);
+                    let diesel = traducirEstatus(fila[6]);
+                    let residuosASG = traducirEstatus(fila[7]);
+                    let residuosDrive = traducirEstatus(fila[8]);
+
+                    let agua = datosAgua[incode] || {
+                        aguaCiudad: "Pendiente", aguaPipa: "Pendiente", aguaTratada: "Pendiente", aguaPozo: "Pendiente", aguaParqueInd: "Pendiente"
+                    };
+
+                    // !!! ORDEN EXACTO MILIMÉTRICO SEGÚN TU GOOGLE SHEETS !!!
+                    let estatus12 = [
+                        residuosDrive,        // Col H: Residuos Drive (Recibos)
+                        residuosASG,          // Col I: Residuos ESG (Port)
+                        gasLP,                // Col J: Gas LP
+                        diesel,               // Col K: Diesel
+                        gasolina,             // Col L: Gasolina
+                        agua.aguaCiudad,      // Col M: Agua ciudad
+                        agua.aguaPipa,        // Col N: Agua de pipa
+                        agua.aguaPozo,        // Col O: Agua de pozo
+                        agua.aguaTratada,     // Col P: Agua tratada
+                        agua.aguaParqueInd,   // Col Q: Agua parque ind
+                        electricidad,         // Col R: Luz / Electricidad
+                        gasNatural            // Col S: Gas Natural
+                    ];
+
+                    actualizaciones.push({ incode: incode, estatus: estatus12 });
+                }
+
+                enviarActualizacionesMasivas(actualizaciones);
             };
             reader.readAsArrayBuffer(file);
         }
 
-        async function enviarActualizacionesMasivas(filas) {
+        async function enviarActualizacionesMasivas(hotelesProcesados) {
             let actualizados = 0;
             let errores = 0;
 
-            for (let fila of filas) {
-                if (!fila[0]) continue; 
-                let incode = fila[0].toString().trim();
-                
-                let existe = datosGlobales.find(h => h.incode === incode);
+            for (let i = 0; i < hotelesProcesados.length; i++) {
+                let hotel = hotelesProcesados[i];
+                let existe = datosGlobales.find(h => h.incode === hotel.incode);
                 if (!existe) continue;
 
-                let nuevosEstatus = [];
-                for (let i = 0; i < 12; i++) {
-                    // 1. LEEMOS EL ESTATUS ACTUAL DEL HOTEL EN GOOGLE SHEETS
-                    let estatusBaseDatos = existe.estatus[i];
-
-                    // 2. LÓGICA AUTOMÁTICA: Si ya es "No Aplica" en la base, lo congelamos.
+                let nuevosEstatusProtegidos = [];
+                for (let j = 0; j < 12; j++) {
+                    let estatusBaseDatos = existe.estatus[j];
                     if (estatusBaseDatos === 'No Aplica') {
-                        nuevosEstatus.push('No Aplica');
+                        nuevosEstatusProtegidos.push('No Aplica');
                     } else {
-                        // 3. Si no es "No Aplica", leemos lo que traiga el Excel del proveedor
-                        let valOriginal = fila[i + 2] ? fila[i + 2].toString().trim().toLowerCase() : "";
-                        let valFinal = "Pendiente"; 
-
-                        if (valOriginal === 'entregado' || valOriginal === 'completo') {
-                            valFinal = 'Entregado';
-                        } else if (valOriginal === 'no aplica') {
-                            valFinal = 'No Aplica';
-                        }
-                        
-                        nuevosEstatus.push(valFinal);
+                        nuevosEstatusProtegidos.push(hotel.estatus[j]);
                     }
                 }
 
                 try {
-                    Swal.update({ title: `Sincronizando...`, text: `Procesando hotel: ${incode} (${actualizados + 1}/${filas.length})` });
+                    Swal.update({ title: `Sincronizando...`, text: `Procesando hotel: ${hotel.incode} (${actualizados + 1}/${hotelesProcesados.length})` });
                     
                     let response = await fetch(API_URL, {
                         method: 'POST',
-                        body: JSON.stringify({ incode: incode, estatus: nuevosEstatus })
+                        body: JSON.stringify({ incode: hotel.incode, estatus: nuevosEstatusProtegidos })
                     });
                     let result = await response.json();
                     if(result.status === "success") actualizados++;
@@ -253,9 +297,6 @@
             });
         }
 
-        // ==========================================
-        // LÓGICA DE EDICIÓN MANUAL ACTUALIZADA
-        // ==========================================
         function mostrarRubros() {
             const incode = document.getElementById('selectIncode').value;
             if(!incode) return;
@@ -273,7 +314,7 @@
                 if(estatus === 'Entregado') claseColor = 'status-entregado';
                 else if(estatus === 'No Aplica') claseColor = 'status-no-aplica';
 
-                let tituloLimpio = encabezado.replace('Estatus ', '').replace(' (ESG)', '').replace(' (Drive)', '');
+                let tituloLimpio = encabezado.replace('Estatus ', '').replace(' (ESG)', '').replace(' (ASG)', '').replace(' (Drive)', '');
 
                 contenedor.innerHTML += `
                     <div class="col-md-4 mb-4">
